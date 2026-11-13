@@ -309,6 +309,82 @@ export function mountSettings(root) {
   return { unsub };
 }
 
+/* ---------- 회계 정리 ---------- */
+
+// 결제방법별로 묶은 장부. 한 줄 = 주문 하나 (반 이름, 주문 내용, 수량, 총 가격, 결제방법).
+export function mountAccounting(root) {
+  root.innerHTML = `
+    <div class="toolbar row-wrap">
+      <div class="chips" data-r="pay"></div>
+      <label class="radio inline-check"><input type="checkbox" data-r="cancel"> 취소 주문 포함</label>
+      <button class="btn small" data-r="csv">회계 CSV 받기</button>
+    </div>
+    <div data-r="body"></div>`;
+  const st = { orders: [], pay: 'all', withCancel: false };
+  const R = n => $(`[data-r=${n}]`, root);
+  const itemsText = o => (o.items || []).map(i => `${i.name} ×${i.qty}`).join(', ');
+  const qtyOf = o => (o.items || []).reduce((s, i) => s + (Number(i.qty) || 0), 0);
+
+  function visible() {
+    let list = st.orders.filter(o => st.withCancel || o.status !== 'cancelled');
+    if (st.pay !== 'all') list = list.filter(o => o.payment === st.pay);
+    return [...list].reverse(); // 들어온 순서대로
+  }
+
+  function groupTable(title, rows) {
+    if (!rows.length) return '';
+    const total = rows.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const qty = rows.reduce((s, o) => s + qtyOf(o), 0);
+    return `
+    <div class="card acc-group">
+      <h3>${esc(title)} · ${rows.length}건 · ${won(total)}</h3>
+      <div class="table-wrap"><table class="table acc-table">
+        <thead><tr><th>번호</th><th>반 이름</th><th>주문 내용</th><th>수량</th><th>총 가격</th><th>결제방법</th></tr></thead>
+        <tbody>
+          ${rows.map(o => `<tr class="${o.status === 'cancelled' ? 'cancelled-row' : ''}">
+            <td>#${esc(o.number)}</td>
+            <td>${esc(o.student)}</td>
+            <td>${esc(itemsText(o))}</td>
+            <td>${qtyOf(o)}</td>
+            <td>${won(o.total)}${o.status === 'cancelled' ? ' (취소)' : ''}</td>
+            <td>${esc(PAYMENT[o.payment] || o.payment)}</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot><tr><td colspan="3">소계</td><td>${qty}</td><td>${won(total)}</td><td></td></tr></tfoot>
+      </table></div>
+    </div>`;
+  }
+
+  function render() {
+    R('pay').innerHTML = [['all', '전체'], ['cash', PAYMENT.cash], ['transfer', PAYMENT.transfer]].map(([k, label]) => {
+      const n = st.orders.filter(o => (st.withCancel || o.status !== 'cancelled') && (k === 'all' || o.payment === k)).length;
+      return `<button class="chip ${st.pay === k ? 'on' : ''}" data-f="${k}">${label} ${n}</button>`;
+    }).join('');
+
+    const list = visible();
+    const grand = list.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (Number(o.total) || 0), 0);
+    let html = `<div class="acc-grand">합계 (취소 제외) <strong>${won(grand)}</strong> · ${list.filter(o => o.status !== 'cancelled').length}건</div>`;
+    if (st.pay === 'all') {
+      // 결제방법으로 정리해서 보여준다
+      html += groupTable('현금 (후불)', list.filter(o => o.payment === 'cash'));
+      html += groupTable('계좌이체 (선불)', list.filter(o => o.payment === 'transfer'));
+    } else {
+      html += groupTable(PAYMENT[st.pay] || st.pay, list);
+    }
+    if (!list.length) html += '<p class="empty">정리할 주문이 없어요.</p>';
+    R('body').innerHTML = html;
+  }
+
+  R('pay').addEventListener('click', e => { const f = e.target.closest('[data-f]')?.dataset.f; if (f) { st.pay = f; render(); } });
+  R('cancel').addEventListener('change', e => { st.withCancel = e.target.checked; render(); });
+  R('csv').onclick = () => downloadCsv(`회계정리_${today()}.csv`,
+    ['번호', '반 이름', '주문 내용', '수량', '총 가격', '결제방법', '상태'],
+    visible().map(o => [o.number, o.student, itemsText(o), qtyOf(o), o.total, PAYMENT[o.payment] || o.payment, STATUS[o.status]?.label || o.status]));
+
+  const unsub = store.watchAllOrders(list => { st.orders = list; render(); });
+  return { unsub };
+}
+
 /* ---------- 도구 ---------- */
 
 export function today() { return new Date().toISOString().slice(0, 10); }

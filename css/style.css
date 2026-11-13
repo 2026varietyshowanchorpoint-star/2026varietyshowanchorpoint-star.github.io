@@ -190,3 +190,13 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 .verify-banner .verify-actions { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
 .table td.nowrap { white-space: nowrap; }
 .table td.nowrap .btn { margin-right: 4px; }
+
+/* 회계 정리 */
+.inline-check { flex-direction: row; align-items: center; gap: 6px; white-space: nowrap; }
+.inline-check input { width: auto; }
+.acc-grand { padding: 10px 2px; font-size: 15px; }
+.acc-grand strong { font-size: 18px; color: var(--navy); }
+.acc-group { padding: 12px; }
+.acc-group h3 { margin: 0 0 8px; font-size: 15px; }
+.acc-table tfoot td { font-weight: 700; border-top: 2px solid var(--line); }
+.acc-table tr.cancelled-row td { color: var(--muted); text-decoration: line-through; }

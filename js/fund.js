@@ -2,7 +2,7 @@
 // 들어올 수 있는 사람: role이 'fund'인 사용자, 개발자
 import { store, DEMO, setPage, isDeveloper } from './store.js';
 import { $, toast, askNotify } from './ui.js';
-import { loginGate, deniedGate, mountOrders, mountMenu, mountSettings, renderStats, tabs } from './panels.js';
+import { loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, renderStats, tabs } from './panels.js';
 
 setPage('fund');
 let mounted = [];
@@ -11,7 +11,7 @@ let ordersPanel = null;
 if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 같은 브라우저 다른 탭에서 학생 화면(index.html)으로 주문해 보세요.</div>`;
 
 tabs($('#nav'), {
-  orders: $('#tab-orders'), menu: $('#tab-menu'), stats: $('#tab-stats'), settings: $('#tab-settings'),
+  orders: $('#tab-orders'), menu: $('#tab-menu'), accounting: $('#tab-accounting'), stats: $('#tab-stats'), settings: $('#tab-settings'),
 }, name => {
   if (name === 'orders' && ordersPanel) ordersPanel.clearFresh();
   if (name === 'stats' && ordersPanel) renderStats($('#tab-stats'), ordersPanel.orders);
@@ -46,5 +46,5 @@ store.onAuth(async u => {
     onNewCount: n => { const c = $('#newCount'); c.textContent = n; c.classList.toggle('hidden', !n); },
     onOrders: list => { if (!$('#tab-stats').classList.contains('hidden')) renderStats($('#tab-stats'), list); },
   });
-  mounted.push(ordersPanel, mountMenu($('#tab-menu')), mountSettings($('#tab-settings')));
+  mounted.push(ordersPanel, mountMenu($('#tab-menu')), mountAccounting($('#tab-accounting')), mountSettings($('#tab-settings')));
 });

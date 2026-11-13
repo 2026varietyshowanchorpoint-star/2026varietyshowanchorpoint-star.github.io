@@ -4,7 +4,7 @@ import { DEVELOPER_EMAILS } from './config.js';
 import { store, DEMO, setPage, isDeveloper } from './store.js';
 import { $, esc, timeText, toast, errText } from './ui.js';
 import {
-  loginGate, deniedGate, mountOrders, mountMenu, mountSettings, renderStats, tabs, downloadCsv, download, today,
+  loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, renderStats, tabs, downloadCsv, download, today,
 } from './panels.js';
 
 setPage('dev');
@@ -21,7 +21,7 @@ if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예�
 
 tabs($('#nav'), {
   logs: $('#tab-logs'), users: $('#tab-users'), orders: $('#tab-orders'), menu: $('#tab-menu'),
-  stats: $('#tab-stats'), settings: $('#tab-settings'), system: $('#tab-system'),
+  accounting: $('#tab-accounting'), stats: $('#tab-stats'), settings: $('#tab-settings'), system: $('#tab-system'),
 }, name => { if (name === 'stats' && st.ordersPanel) renderStats($('#tab-stats'), st.ordersPanel.orders); });
 
 $('#outBtn').onclick = () => store.signOut().then(() => toast('로그아웃했어요.'));
@@ -53,6 +53,7 @@ store.onAuth(u => {
   mounted.push(
     st.ordersPanel,
     mountMenu($('#tab-menu')),
+    mountAccounting($('#tab-accounting')),
     mountSettings($('#tab-settings')),
     { unsub: store.watchLoginLogs(l => { st.logs = l; renderLogs(); }, e => toast('기록을 불러오지 못했어요: ' + errText(e), 'error')) },
     { unsub: store.watchUsers(l => { st.users = l; renderUsers(); }) },
