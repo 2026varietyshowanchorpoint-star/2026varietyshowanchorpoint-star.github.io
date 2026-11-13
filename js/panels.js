@@ -370,7 +370,7 @@ export function mountWalkup(root) {
     R('rows').innerHTML = rows.map((r, i) => `
       <tr data-id="${r.id}" class="${r.saved ? 'saved' : ''}">
         <td class="c-no">${r.saved ? `#${r.number}` : i + 1}</td>
-        <td><input data-c="student" value="${esc(r.student)}" placeholder="9A 권율" ${r.saved ? 'disabled' : ''}></td>
+        <td><input data-c="student" value="${esc(r.student)}" placeholder="${esc(SHOP.studentHint)}" ${r.saved ? 'disabled' : ''}></td>
         <td>${itemCell(r)}</td>
         <td><input type="number" data-c="qty" min="1" value="${esc(r.qty)}" ${r.saved ? 'disabled' : ''}></td>
         <td><input type="number" data-c="price" min="0" step="100" value="${esc(r.price)}" ${r.saved ? 'disabled' : ''}></td>

@@ -260,7 +260,6 @@ function openCheckout() {
   const items = cartItems();
   if (!items.length) return;
   const p = state.profile || {};
-  const canTransfer = !!SHOP.bankInfo;
   const m = openModal(`
     <h2>주문서</h2>
     <ul class="summary">
@@ -272,10 +271,14 @@ function openCheckout() {
       <label>배달 위치 *<input name="location" required value="${esc(p.location || '')}" placeholder="${esc(SHOP.locationHint)}"></label>
       <fieldset>
         <legend>결제 방식 *</legend>
-        ${canTransfer ? `<label class="radio"><input type="radio" name="payment" value="transfer" required> ${PAYMENT.transfer}</label>` : ''}
-        <label class="radio"><input type="radio" name="payment" value="cash" required ${canTransfer ? '' : 'checked'}> ${PAYMENT.cash}</label>
+        <label class="radio"><input type="radio" name="payment" value="cash" required checked> ${PAYMENT.cash}</label>
+        <label class="radio"><input type="radio" name="payment" value="transfer" required> ${PAYMENT.transfer}</label>
+        <label class="radio"><input type="radio" name="payment" value="credit" required> ${PAYMENT.credit} (나중에 결제)</label>
       </fieldset>
-      <div id="bankBox" class="bank hidden">입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong><br>입금자명은 학년 반 이름으로 해 주세요.</div>
+      <div id="bankBox" class="bank hidden">${SHOP.bankInfo
+        ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong><br>입금자명은 학년 반 이름으로 해 주세요.`
+        : '계좌 정보는 담당자가 곧 안내할게요.'}</div>
+      <div id="creditBox" class="bank hidden">지금은 안 내도 돼요. 나중에 펀드 담당자에게 내면 됩니다.</div>
       <label id="changeBox" class="hidden">거스름돈이 필요하면 낼 금액을 적어 주세요<input name="cashGiven" type="number" min="0" step="100" placeholder="예: 10000"></label>
       <label>요청 사항<textarea name="note" rows="2" maxlength="300" placeholder="예: 붕어빵 팥 1개, 슈크림 2개로 나눠 주세요"></textarea></label>
       <button class="btn primary wide" type="submit" id="placeBtn">${won(cartTotal())} 주문하기</button>
@@ -285,6 +288,7 @@ function openCheckout() {
   const sync = () => {
     const pay = $('input[name=payment]:checked', m)?.value;
     $('#bankBox', m).classList.toggle('hidden', pay !== 'transfer');
+    $('#creditBox', m).classList.toggle('hidden', pay !== 'credit');
     $('#changeBox', m).classList.toggle('hidden', pay !== 'cash');
   };
   $$('input[name=payment]', m).forEach(r => r.addEventListener('change', sync));
