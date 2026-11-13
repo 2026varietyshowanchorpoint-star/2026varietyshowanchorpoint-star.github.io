@@ -78,7 +78,7 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     const change = o.payment === 'cash' && o.cashGiven > o.total ? o.cashGiven - o.total : 0;
     return `
     <article class="order-card admin-card st-${esc(o.status)} ${st.fresh.has(o.id) ? 'fresh' : ''}" data-id="${esc(o.id)}">
-      <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}<span class="time">${timeText(o.createdAt)}</span></header>
+      <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}<span class="time">${timeText(o.createdAt)}</span></header>
       <div class="who"><strong>${esc(o.student)}</strong> · ${esc(o.location)}</div>
       <ul class="items">${(o.items || []).map(i => `<li><b>${esc(i.qty)}</b> ${esc(i.name)}</li>`).join('')}</ul>
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
@@ -309,6 +309,82 @@ export function mountSettings(root) {
   return { unsub };
 }
 
+/* ---------- 현장 주문 기록 ---------- */
+
+// 펀드 담당자가 부스 앞에서 받은 주문을 직접 적는 곳. 온라인 주문과 같은 orders에 저장돼서
+// 주문판·회계·매출에 똑같이 잡힌다. 계좌이체는 bankInfo가 있을 때만 고를 수 있다.
+export function mountWalkup(root) {
+  const canTransfer = !!SHOP.bankInfo;
+  root.innerHTML = `
+    <div class="card">
+      <h3>현장 주문 기록</h3>
+      <p class="muted">부스에서 바로 받은 주문을 적어요. 적으면 주문판과 회계 정리에 같이 들어가요.</p>
+      <form class="form" data-r="form">
+        <div class="row-wrap">
+          <input name="student" placeholder="이름 학년반 (예: ${esc(SHOP.studentHint)})" required>
+          <select name="payment">
+            <option value="cash">${PAYMENT.cash}</option>
+            ${canTransfer ? `<option value="transfer">${PAYMENT.transfer}</option>` : ''}
+          </select>
+        </div>
+        <div class="walkup-items" data-r="items"></div>
+        <div class="walkup-total">합계 <strong data-r="total">0원</strong></div>
+        <button class="btn primary" type="submit" data-r="submit">현장 주문 기록</button>
+      </form>
+    </div>`;
+  const R = n => $(`[data-r=${n}]`, root);
+  let menu = [];
+  const qty = {}; // menuId -> 수량
+
+  function renderItems() {
+    R('items').innerHTML = menu.length ? menu.map(m => `
+      <div class="walkup-row ${m.soldOut ? 'sold' : ''}" data-id="${esc(m.id)}">
+        <span class="wu-name">${esc(m.name)}${m.soldOut ? ' (품절)' : ''}</span>
+        <span class="wu-price">${won(m.price)}</span>
+        <div class="stepper">
+          <button type="button" data-act="minus" aria-label="빼기" ${(qty[m.id] || 0) ? '' : 'disabled'}>−</button>
+          <span>${qty[m.id] || 0}</span>
+          <button type="button" data-act="plus" aria-label="더하기">+</button>
+        </div>
+      </div>`).join('') : '<p class="empty">메뉴가 없어요.</p>';
+    const total = menu.reduce((s, m) => s + (qty[m.id] || 0) * (Number(m.price) || 0), 0);
+    R('total').textContent = won(total);
+  }
+
+  R('items').addEventListener('click', e => {
+    const btn = e.target.closest('button[data-act]');
+    if (!btn) return;
+    const id = btn.closest('.walkup-row').dataset.id;
+    const q = qty[id] || 0;
+    qty[id] = btn.dataset.act === 'plus' ? Math.min(q + 1, 50) : Math.max(q - 1, 0);
+    renderItems();
+  });
+
+  R('form').onsubmit = async ev => {
+    ev.preventDefault();
+    const student = R('form').student.value.trim();
+    const items = menu.filter(m => qty[m.id] > 0).map(m => ({ id: m.id, name: m.name, price: Number(m.price) || 0, qty: qty[m.id] }));
+    if (!items.length) return toast('물품을 하나 이상 골라 주세요.', 'error');
+    const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+    const submit = R('submit');
+    submit.disabled = true;
+    try {
+      const res = await store.placeOrder({
+        uid: store.user.uid, email: store.user.email || '', student, location: '현장',
+        payment: R('form').payment.value, cashGiven: 0, note: '', items, total, source: 'walkup',
+      });
+      toast(`현장 주문 #${res.number} 기록했어요. ${won(total)}`, 'good');
+      Object.keys(qty).forEach(k => delete qty[k]);
+      R('form').reset();
+      renderItems();
+    } catch (e) { toast(errText(e), 'error'); }
+    submit.disabled = false;
+  };
+
+  const unsub = store.watchMenu(l => { menu = l; renderItems(); });
+  return { unsub };
+}
+
 /* ---------- 회계 정리 ---------- */
 
 // 결제방법별로 묶은 장부. 한 줄 = 주문 하나 (반 이름, 주문 내용, 수량, 총 가격, 결제방법).
@@ -342,7 +418,7 @@ export function mountAccounting(root) {
         <thead><tr><th>번호</th><th>반 이름</th><th>주문 내용</th><th>수량</th><th>총 가격</th><th>결제방법</th></tr></thead>
         <tbody>
           ${rows.map(o => `<tr class="${o.status === 'cancelled' ? 'cancelled-row' : ''}">
-            <td>#${esc(o.number)}</td>
+            <td>#${esc(o.number)}${o.source === 'walkup' ? ' <span class="tag-mini">현장</span>' : ''}</td>
             <td>${esc(o.student)}</td>
             <td>${esc(itemsText(o))}</td>
             <td>${qtyOf(o)}</td>

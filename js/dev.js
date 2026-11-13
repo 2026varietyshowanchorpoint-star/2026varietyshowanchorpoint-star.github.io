@@ -4,7 +4,7 @@ import { DEVELOPER_EMAILS } from './config.js';
 import { store, DEMO, setPage, isDeveloper } from './store.js';
 import { $, esc, timeText, toast, errText } from './ui.js';
 import {
-  loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, renderStats, tabs, downloadCsv, download, today,
+  loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, mountWalkup, renderStats, tabs, downloadCsv, download, today,
 } from './panels.js';
 
 setPage('dev');
@@ -20,7 +20,7 @@ let mounted = [];
 if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 기록은 이 브라우저 안에만 남아요.</div>`;
 
 tabs($('#nav'), {
-  logs: $('#tab-logs'), users: $('#tab-users'), orders: $('#tab-orders'), menu: $('#tab-menu'),
+  logs: $('#tab-logs'), users: $('#tab-users'), orders: $('#tab-orders'), walkup: $('#tab-walkup'), menu: $('#tab-menu'),
   accounting: $('#tab-accounting'), stats: $('#tab-stats'), settings: $('#tab-settings'), system: $('#tab-system'),
 }, name => { if (name === 'stats' && st.ordersPanel) renderStats($('#tab-stats'), st.ordersPanel.orders); });
 
@@ -52,6 +52,7 @@ store.onAuth(u => {
   });
   mounted.push(
     st.ordersPanel,
+    mountWalkup($('#tab-walkup')),
     mountMenu($('#tab-menu')),
     mountAccounting($('#tab-accounting')),
     mountSettings($('#tab-settings')),

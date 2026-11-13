@@ -24,6 +24,7 @@
   <div id="app" class="hidden">
     <nav class="tabs" id="nav">
       <button class="tab active" data-tab="orders">주문 <span id="newCount" class="count hidden"></span></button>
+      <button class="tab" data-tab="walkup">현장 주문</button>
       <button class="tab" data-tab="menu">메뉴·품절</button>
       <button class="tab" data-tab="accounting">회계 정리</button>
       <button class="tab" data-tab="stats">매출</button>
@@ -31,6 +32,7 @@
     </nav>
     <main>
       <section id="tab-orders"></section>
+      <section id="tab-walkup" class="hidden"></section>
       <section id="tab-menu" class="hidden"></section>
       <section id="tab-accounting" class="hidden"></section>
       <section id="tab-stats" class="hidden"></section>

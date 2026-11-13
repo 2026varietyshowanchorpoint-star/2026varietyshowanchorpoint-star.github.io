@@ -200,3 +200,19 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 .acc-group h3 { margin: 0 0 8px; font-size: 15px; }
 .acc-table tfoot td { font-weight: 700; border-top: 2px solid var(--line); }
 .acc-table tr.cancelled-row td { color: var(--muted); text-decoration: line-through; }
+
+/* 결제 태그 (학생 주문 카드) */
+.pay-tag { font-size: 12px; color: var(--navy); background: #eef1f6; padding: 2px 8px; border-radius: 10px; }
+.order-card .time { margin-left: auto; }
+
+/* 현장 주문 기록 */
+.walkup-items { margin: 6px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.walkup-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.walkup-row:last-child { border-bottom: 0; }
+.walkup-row.sold { opacity: .5; }
+.walkup-row .wu-name { flex: 1; font-weight: 600; }
+.walkup-row .wu-price { color: var(--muted); font-size: 14px; }
+.walkup-row .stepper button { width: 32px; height: 32px; }
+.walkup-total { text-align: right; font-size: 15px; margin: 8px 0; }
+.walkup-total strong { font-size: 18px; color: var(--navy); }
+.tag-mini { font-size: 11px; background: #dde8ff; color: #2446a8; padding: 1px 5px; border-radius: 6px; }

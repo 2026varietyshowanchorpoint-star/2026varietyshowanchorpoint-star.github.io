@@ -378,7 +378,7 @@ function renderOrders() {
       </ol>`;
     return `
     <article class="order-card st-${esc(o.status)}">
-      <header><span class="num">#${esc(o.number)}</span>${badge(o.status)}<span class="time">${timeText(o.createdAt)}</span></header>
+      <header><span class="num">#${esc(o.number)}</span>${badge(o.status)}<span class="pay-tag">${esc(PAYMENT[o.payment] || o.payment)}</span><span class="time">${timeText(o.createdAt)}</span></header>
       ${steps}
       <ul class="items">${(o.items || []).map(i => `<li>${esc(i.name)} × ${esc(i.qty)}</li>`).join('')}</ul>
       <div class="meta">
