@@ -11,8 +11,8 @@
 
 `js/config.js`의 `firebaseConfig`가 `null`이면 데모 모드로 돈다. 주문과 메뉴가 그 브라우저 안에만 저장된다.
 
-1. GitHub 저장소 Settings > Pages에서 Branch를 `main` / `(root)`로 정하고 저장한다.
-2. 1~2분 뒤 나오는 주소로 `index.html`을 열고 주문한다.
+1. https://kanghyeon0220.github.io/fund-demo/ 를 연다. GitHub Pages는 `gh-pages` 브랜치에서 나간다. 코드를 고치면 `main`과 `gh-pages` 둘 다에 올려야 사이트에 반영된다 (`git push origin main main:gh-pages`).
+2. 메뉴를 고르고 주문한다.
 3. 같은 브라우저 다른 탭에서 `admin.html`을 열고 "데모 관리자로 들어가기"를 누른다. 방금 한 주문이 보인다.
 4. 관리자 탭에서 상태를 바꾸면 주문 탭에 알림이 뜬다.
 
