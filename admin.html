@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f2a44">
+  <meta name="robots" content="noindex">
+  <title>펀드 관리자</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin">
+  <header class="topbar">
+    <div>
+      <h1>펀드 관리자</h1>
+      <p class="sub" id="who"></p>
+    </div>
+    <div class="top-actions">
+      <label class="switch hidden" id="openSwitch" title="소비자 화면에서 주문을 받을지">
+        <input type="checkbox" id="openToggle"><span>주문 받기</span>
+      </label>
+      <button id="outBtn" class="btn ghost small hidden">로그아웃</button>
+    </div>
+  </header>
+
+  <div id="banners"></div>
+
+  <section id="gate" class="gate"></section>
+
+  <div id="app" class="hidden">
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="orders">주문 <span id="newCount" class="count hidden"></span></button>
+      <button class="tab" data-tab="menu">메뉴</button>
+      <button class="tab" data-tab="stats">매출</button>
+      <button class="tab admin-only" data-tab="users">사용자</button>
+    </nav>
+
+    <main>
+      <section id="tab-orders">
+        <div class="toolbar">
+          <div id="filters" class="chips"></div>
+          <input id="search" type="search" placeholder="번호, 이름, 위치 검색">
+        </div>
+        <div id="orderList" class="order-board"></div>
+      </section>
+
+      <section id="tab-menu" class="hidden">
+        <form id="addMenu" class="card form inline">
+          <h3>메뉴 추가</h3>
+          <input name="name" placeholder="이름" required>
+          <input name="price" type="number" min="0" step="100" placeholder="가격" required>
+          <select name="category"><option value="food">음식</option><option value="drink">음료</option></select>
+          <input name="description" placeholder="설명 (선택)">
+          <input name="imageUrl" placeholder="사진 주소 (선택)">
+          <button class="btn primary" type="submit">추가</button>
+        </form>
+        <div id="menuAdmin"></div>
+        <div class="card form">
+          <h3>공지</h3>
+          <textarea id="notice" rows="2" placeholder="소비자 화면 위쪽에 보이는 안내 문구"></textarea>
+          <button class="btn" id="saveNotice">공지 저장</button>
+        </div>
+      </section>
+
+      <section id="tab-stats" class="hidden">
+        <div id="stats"></div>
+        <button class="btn" id="csvBtn">주문 전체 CSV로 받기</button>
+      </section>
+
+      <section id="tab-users" class="hidden">
+        <input id="userSearch" type="search" placeholder="이메일 검색">
+        <div id="userList"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
