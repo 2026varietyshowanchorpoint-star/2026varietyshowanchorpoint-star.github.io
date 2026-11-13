@@ -1,23 +1,51 @@
 // 데이터 계층. Firebase 모드와 데모 모드가 같은 함수를 제공한다.
 // 화면 코드는 이 파일의 store 객체만 쓴다.
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, DEVELOPER_EMAILS } from './config.js';
 
 export const DEMO = !firebaseConfig;
-export const ROLES = ['admin', 'staff'];
+const DEMO_DEV_EMAIL = 'demo.dev@example.com';
+const DEV_LIST = DEVELOPER_EMAILS.map(e => e.trim().toLowerCase()).concat(DEMO ? [DEMO_DEV_EMAIL] : []);
 
-/* ---------------- 공통 ---------------- */
+export const isDeveloper = u => !!(u && u.email && DEV_LIST.includes(u.email.toLowerCase()));
 
-function sortNewest(list) {
-  return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+// 이 페이지 이름 (로그인 기록에 남는다): 'order' | 'fund' | 'dev'
+let pageName = 'order';
+export function setPage(name) { pageName = name; }
+
+/* ---------------- 로그인 기록 공통 ----------------
+   로그인 방법(구글/이메일)을 기억해 두었다가, 로그인 상태가 바뀌는 시점에 한 번만 기록한다.
+   이미 로그인된 채로 다시 들어온 경우는 탭(세션)마다 한 번 '재방문'으로 기록한다. */
+let pending = null; // { type: 'login' | 'signup', method: 'google' | 'email' }
+const LOGGED_KEY = uid => 'fo-logged-' + uid;
+function wasLogged(uid) { try { return sessionStorage.getItem(LOGGED_KEY(uid)) === '1'; } catch (e) { return false; } }
+function markLogged(uid, on = true) {
+  try { on ? sessionStorage.setItem(LOGGED_KEY(uid), '1') : sessionStorage.removeItem(LOGGED_KEY(uid)); } catch (e) { /* 무시 */ }
 }
+function deviceText() {
+  const ua = navigator.userAgent;
+  const os = /iPhone|iPad/.test(ua) ? 'iOS' : /Android/.test(ua) ? 'Android' : /Mac OS/.test(ua) ? 'Mac'
+    : /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) ? 'Linux' : '기타';
+  const br = /KAKAOTALK/i.test(ua) ? '카카오톡' : /Instagram/.test(ua) ? '인스타그램' : /Edg\//.test(ua) ? 'Edge'
+    : /SamsungBrowser/.test(ua) ? '삼성 인터넷' : /CriOS|Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari'
+    : /Firefox\//.test(ua) ? 'Firefox' : '기타';
+  return `${os} · ${br}`;
+}
+function makeLog(u, type, method) {
+  return {
+    uid: u.uid, email: (u.email || '').toLowerCase(), name: u.displayName || '',
+    type, method: method || '', page: pageName, device: deviceText(), userAgent: navigator.userAgent.slice(0, 300),
+  };
+}
+
+function sortNewest(list) { return list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)); }
 
 /* ---------------- 데모 모드 ---------------- */
 
 function makeDemoStore() {
-  const KEY = 'fund-order-demo-v1';
+  // 주문·메뉴·기록은 localStorage(탭끼리 공유), 로그인은 sessionStorage(탭마다 따로)
+  const KEY = 'fund-order-demo-v2';
   const AUTH_KEY = 'fund-order-demo-auth';
   const listeners = new Set();
-  // 주문·메뉴는 localStorage(탭끼리 공유), 로그인은 sessionStorage(탭마다 따로)
 
   const seedMenu = [
     ['붕어빵 (팥)', 1000, 'food'], ['붕어빵 (슈크림)', 1000, 'food'],
@@ -25,62 +53,62 @@ function makeDemoStore() {
     ['아이스티', 1500, 'drink'], ['핫초코', 2000, 'drink'],
   ];
 
-  function load() {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) return JSON.parse(raw);
-    } catch (e) { /* 저장소를 못 쓰는 환경 */ }
+  function fresh() {
     const menu = {};
     seedMenu.forEach(([name, price, category], i) => {
       const id = 'm' + (i + 1);
       menu[id] = { id, name, price, category, soldOut: false, order: i, description: '' };
     });
-    return { menu, orders: {}, users: {}, counter: 0, settings: { open: true, notice: '' } };
+    return { menu, orders: {}, users: {}, logs: [], counter: 0, settings: { open: true, notice: '' } };
+  }
+  function load() {
+    try { const raw = localStorage.getItem(KEY); if (raw) return JSON.parse(raw); } catch (e) { /* 무시 */ }
+    return fresh();
   }
   let db = load();
-
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 무시 */ }
-    emit();
-  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 무시 */ } emit(); }
   function emit() { listeners.forEach(fn => fn()); }
-
-  // 다른 탭(예: 소비자 탭과 관리자 탭)에서 바뀐 값도 받아온다
-  window.addEventListener('storage', e => {
-    if (e.key === KEY) { db = load(); emit(); }
-  });
-
-  function watch(compute, cb) {
-    const run = () => cb(compute());
-    listeners.add(run);
-    setTimeout(run, 0);
-    return () => listeners.delete(run);
-  }
+  window.addEventListener('storage', e => { if (e.key === KEY) { db = load(); emit(); } });
+  function watch(compute, cb) { const run = () => cb(compute()); listeners.add(run); setTimeout(run, 0); return () => listeners.delete(run); }
 
   const authListeners = new Set();
-  function readAuth() {
-    try { return JSON.parse(sessionStorage.getItem(AUTH_KEY)) || null; } catch (e) { return null; }
-  }
+  function readAuth() { try { return JSON.parse(sessionStorage.getItem(AUTH_KEY)) || null; } catch (e) { return null; } }
   let authUser = readAuth();
+
+  function writeLog(u, type, method) {
+    db.logs.unshift({ ...makeLog(u, type, method), id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), createdAt: Date.now() });
+    db.logs = db.logs.slice(0, 2000);
+    if (type !== 'logout' && db.users[u.uid]) {
+      db.users[u.uid].lastLoginAt = Date.now();
+      db.users[u.uid].loginCount = (db.users[u.uid].loginCount || 0) + 1;
+    }
+    save();
+  }
   function setAuth(u) {
     authUser = u;
-    try {
-      if (u) sessionStorage.setItem(AUTH_KEY, JSON.stringify(u));
-      else sessionStorage.removeItem(AUTH_KEY);
-    } catch (e) { /* 무시 */ }
+    try { u ? sessionStorage.setItem(AUTH_KEY, JSON.stringify(u)) : sessionStorage.removeItem(AUTH_KEY); } catch (e) { /* 무시 */ }
+    if (u && !wasLogged(u.uid)) {
+      writeLog(u, pending ? pending.type : 'session', pending ? pending.method : '');
+      markLogged(u.uid);
+    }
+    pending = null;
     authListeners.forEach(fn => fn(u));
   }
+  // 첫 화면에서 이미 로그인돼 있으면 재방문 기록
+  setTimeout(() => { if (authUser && !wasLogged(authUser.uid)) { writeLog(authUser, 'session', ''); markLogged(authUser.uid); } }, 0);
+
   function demoUid(email) {
     let h = 0;
     for (const c of email) h = (h * 31 + c.charCodeAt(0)) | 0;
     return 'demo_' + Math.abs(h).toString(36);
   }
-  function loginAs(email, name) {
+  function loginAs(email, name, extra = {}) {
+    email = email.trim().toLowerCase();
     const uid = demoUid(email);
-    if (!db.users[uid]) {
-      db.users[uid] = { uid, email, name: name || email.split('@')[0], createdAt: Date.now() };
-      save();
-    }
+    const isNew = !db.users[uid];
+    db.users[uid] = { ...(db.users[uid] || { uid, email, name: name || email.split('@')[0], createdAt: Date.now() }), ...extra };
+    save();
+    if (!pending) pending = { type: isNew ? 'signup' : 'login', method: 'email' };
     setAuth({ uid, email, displayName: db.users[uid].name });
     return authUser;
   }
@@ -88,19 +116,16 @@ function makeDemoStore() {
   return {
     onAuth(cb) { authListeners.add(cb); setTimeout(() => cb(authUser), 0); return () => authListeners.delete(cb); },
     get user() { return authUser; },
-    async signInGoogle() { return loginAs('demo.student@example.com', '데모 학생'); },
-    async signInEmail(email) { return loginAs(email.trim().toLowerCase()); },
-    async signUpEmail(email) { return loginAs(email.trim().toLowerCase()); },
-    async signOut() { setAuth(null); },
-    // 데모 전용: 관리자 화면을 바로 써 볼 수 있게 관리자 계정으로 들어간다
-    async demoAdminLogin() {
-      // 로그인 알림이 나가기 전에 역할부터 넣어 둬야 권한 확인이 통과한다
-      const email = 'demo.admin@example.com';
-      const uid = demoUid(email);
-      db.users[uid] = { ...(db.users[uid] || { uid, email, name: '데모 관리자', createdAt: Date.now() }), role: 'admin' };
-      save();
-      return loginAs(email);
+    async signInGoogle() { pending = { type: 'login', method: 'google' }; return loginAs('demo.student@example.com', '데모 학생'); },
+    async signInEmail(email) { pending = { type: 'login', method: 'email' }; return loginAs(email); },
+    async signUpEmail(email) { pending = { type: 'signup', method: 'email' }; return loginAs(email); },
+    async signOut() {
+      if (authUser) { writeLog(authUser, 'logout', ''); markLogged(authUser.uid, false); }
+      setAuth(null);
     },
+    // 데모 전용 입장 버튼
+    async demoFundLogin() { pending = { type: 'login', method: 'demo' }; return loginAs('demo.fund@example.com', '데모 펀드 담당', { role: 'fund' }); },
+    async demoDevLogin() { pending = { type: 'login', method: 'demo' }; return loginAs(DEMO_DEV_EMAIL, '데모 개발자'); },
 
     async getProfile(uid) { return db.users[uid] || null; },
     async saveProfile(uid, data) {
@@ -109,8 +134,11 @@ function makeDemoStore() {
       save();
     },
     async getRole(uid) { return (db.users[uid] && db.users[uid].role) || ''; },
-    watchUsers(cb) { return watch(() => Object.values(db.users).sort((a, b) => (a.email || '').localeCompare(b.email || '')), cb); },
-    async setRole(uid, role) { db.users[uid].role = role || ''; if (!role) delete db.users[uid].role; save(); },
+    watchUsers(cb) { return watch(() => Object.values(db.users).sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)), cb); },
+    async setRole(uid, role) { if (role) db.users[uid].role = role; else delete db.users[uid].role; save(); },
+
+    watchLoginLogs(cb) { return watch(() => db.logs.slice(), cb); },
+    async clearLoginLogs() { db.logs = []; save(); },
 
     watchSettings(cb) { return watch(() => ({ ...db.settings }), cb); },
     async updateSettings(patch) { db.settings = { ...db.settings, ...patch }; save(); },
@@ -142,7 +170,8 @@ function makeDemoStore() {
       o.status = 'cancelled'; o.updatedAt = Date.now(); save();
     },
     async deleteOrder(id) { delete db.orders[id]; save(); },
-    async resetDemo() { localStorage.removeItem(KEY); db = load(); save(); },
+    async exportAll() { return JSON.parse(JSON.stringify(db)); },
+    async resetDemo() { db = fresh(); save(); },
   };
 }
 
@@ -163,23 +192,62 @@ async function makeFirebaseStore() {
   const ts = v => (v && typeof v.toMillis === 'function' ? v.toMillis() : v || 0);
   const fromSnap = d => {
     const data = d.data({ serverTimestamps: 'estimate' });
-    return { ...data, id: d.id, createdAt: ts(data.createdAt), updatedAt: ts(data.updatedAt) };
+    return { ...data, id: d.id, createdAt: ts(data.createdAt), updatedAt: ts(data.updatedAt), lastLoginAt: ts(data.lastLoginAt) };
   };
   const listOf = (q, cb, onErr) => F.onSnapshot(q, s => cb(s.docs.map(fromSnap)), onErr || (e => console.error(e)));
 
+  async function writeLog(u, type, method) {
+    try {
+      await F.addDoc(F.collection(fs, 'login_logs'), { ...makeLog(u, type, method), createdAt: F.serverTimestamp() });
+      if (type !== 'logout') {
+        await F.setDoc(F.doc(fs, 'users', u.uid), {
+          uid: u.uid, email: (u.email || '').toLowerCase(),
+          lastLoginAt: F.serverTimestamp(), loginCount: F.increment(1),
+        }, { merge: true });
+      }
+    } catch (e) { console.error('로그인 기록 실패', e); }
+  }
+
   let current = null;
+  const authListeners = new Set();
+  // 로그인 기록은 여기 한 곳에서만 한다 (화면이 onAuth를 여러 번 불러도 한 번만 기록)
+  A.onAuthStateChanged(auth, async u => {
+    current = u;
+    if (u && !wasLogged(u.uid)) {
+      markLogged(u.uid);
+      await writeLog(u, pending ? pending.type : 'session', pending ? pending.method : '');
+    }
+    pending = null;
+    known = true;
+    authListeners.forEach(fn => fn(u));
+  });
+  let known = false; // 첫 로그인 상태를 받았는지
 
   return {
-    onAuth(cb) { return A.onAuthStateChanged(auth, u => { current = u; cb(u); }); },
+    onAuth(cb) {
+      authListeners.add(cb);
+      if (known) setTimeout(() => cb(current), 0); // 이미 상태를 알면 바로 알려 준다
+      return () => authListeners.delete(cb);
+    },
     get user() { return current; },
     async signInGoogle() {
+      pending = { type: 'login', method: 'google' };
       const p = new A.GoogleAuthProvider();
       p.setCustomParameters({ prompt: 'select_account' });
-      return (await A.signInWithPopup(auth, p)).user;
+      try { return (await A.signInWithPopup(auth, p)).user; } catch (e) { pending = null; throw e; }
     },
-    async signInEmail(email, pw) { return (await A.signInWithEmailAndPassword(auth, email.trim(), pw)).user; },
-    async signUpEmail(email, pw) { return (await A.createUserWithEmailAndPassword(auth, email.trim(), pw)).user; },
-    async signOut() { await A.signOut(auth); },
+    async signInEmail(email, pw) {
+      pending = { type: 'login', method: 'email' };
+      try { return (await A.signInWithEmailAndPassword(auth, email.trim(), pw)).user; } catch (e) { pending = null; throw e; }
+    },
+    async signUpEmail(email, pw) {
+      pending = { type: 'signup', method: 'email' };
+      try { return (await A.createUserWithEmailAndPassword(auth, email.trim(), pw)).user; } catch (e) { pending = null; throw e; }
+    },
+    async signOut() {
+      if (current) { await writeLog(current, 'logout', ''); markLogged(current.uid, false); }
+      await A.signOut(auth);
+    },
 
     async getProfile(uid) {
       const s = await F.getDoc(F.doc(fs, 'users', uid));
@@ -193,9 +261,20 @@ async function makeFirebaseStore() {
       const s = await F.getDoc(F.doc(fs, 'users', uid));
       return (s.exists() && s.data().role) || '';
     },
-    watchUsers(cb) { return listOf(F.query(F.collection(fs, 'users'), F.limit(500)), cb); },
-    async setRole(uid, role) {
-      await F.updateDoc(F.doc(fs, 'users', uid), { role: role ? role : F.deleteField() });
+    watchUsers(cb) { return listOf(F.query(F.collection(fs, 'users'), F.limit(1000)), l => cb(l.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)))); },
+    async setRole(uid, role) { await F.updateDoc(F.doc(fs, 'users', uid), { role: role ? role : F.deleteField() }); },
+
+    watchLoginLogs(cb, onErr) {
+      return listOf(F.query(F.collection(fs, 'login_logs'), F.orderBy('createdAt', 'desc'), F.limit(2000)), cb, onErr);
+    },
+    async clearLoginLogs() {
+      const s = await F.getDocs(F.collection(fs, 'login_logs'));
+      // 한 번에 500개까지 지울 수 있어서 나눠서 지운다
+      for (let i = 0; i < s.docs.length; i += 450) {
+        const b = F.writeBatch(fs);
+        s.docs.slice(i, i + 450).forEach(d => b.delete(d.ref));
+        await b.commit();
+      }
     },
 
     watchSettings(cb) {
@@ -226,18 +305,24 @@ async function makeFirebaseStore() {
       });
       return { id: orderRef.id, number };
     },
-    // 내 주문은 email이 아니라 uid로 찾는다 (작년 앱은 email로 찾아서 이메일 없는 계정이 막혔다)
+    // 내 주문은 email이 아니라 uid로 찾는다
     watchMyOrders(uid, cb) {
       return listOf(F.query(F.collection(fs, 'orders'), F.where('uid', '==', uid)), l => cb(sortNewest(l)));
     },
     watchAllOrders(cb, onErr) {
-      return listOf(F.query(F.collection(fs, 'orders'), F.orderBy('createdAt', 'desc'), F.limit(500)), cb, onErr);
+      return listOf(F.query(F.collection(fs, 'orders'), F.orderBy('createdAt', 'desc'), F.limit(1000)), cb, onErr);
     },
     async updateOrder(id, patch) { await F.updateDoc(F.doc(fs, 'orders', id), { ...patch, updatedAt: F.serverTimestamp() }); },
-    async cancelMyOrder(id) {
-      await F.updateDoc(F.doc(fs, 'orders', id), { status: 'cancelled', updatedAt: F.serverTimestamp() });
-    },
+    async cancelMyOrder(id) { await F.updateDoc(F.doc(fs, 'orders', id), { status: 'cancelled', updatedAt: F.serverTimestamp() }); },
     async deleteOrder(id) { await F.deleteDoc(F.doc(fs, 'orders', id)); },
+    async exportAll() {
+      const out = {};
+      for (const c of ['users', 'orders', 'menu', 'login_logs', 'meta']) {
+        const s = await F.getDocs(F.collection(fs, c));
+        out[c] = s.docs.map(fromSnap);
+      }
+      return out;
+    },
   };
 }
 

@@ -1,8 +1,8 @@
 // 앱 껍데기만 캐시한다. 주문 데이터는 항상 Firebase에서 새로 받는다.
-const CACHE = 'fund-order-v1';
+const CACHE = 'fund-order-v2';
 const SHELL = [
-  './', 'index.html', 'admin.html', 'css/style.css', 'manifest.json',
-  'js/app.js', 'js/admin.js', 'js/store.js', 'js/ui.js', 'js/config.js',
+  './', 'index.html', 'css/style.css', 'manifest.json',
+  'js/app.js', 'js/store.js', 'js/ui.js', 'js/config.js',
   'icons/icon-192.png', 'icons/icon-512.png',
 ];
 

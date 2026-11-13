@@ -13,6 +13,10 @@ export const SHOP = {
   defaultOpen: true,
 };
 
+// 개발자 이메일. 여기 적힌 구글 계정은 역할과 상관없이 모든 권한을 갖는다.
+// firestore.rules 맨 위의 developerEmails() 목록도 똑같이 맞춰야 한다.
+export const DEVELOPER_EMAILS = ['YOUR_EMAIL@gmail.com'];
+
 // Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값을 넣는다.
 // null로 두면 데모 모드(이 브라우저 안에만 저장)로 돈다.
 export const firebaseConfig = null;

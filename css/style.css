@@ -172,3 +172,16 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 #toast.show { transform: translate(-50%, 0); }
 #toast.error { background: var(--bad); }
 #toast.good { background: var(--good); }
+
+/* 펀드·개발자 화면 */
+.fund-page .topbar { background: #1f6b4a; }
+.dev-page .topbar { background: #2a1f44; }
+.small-note { font-size: 12px; text-align: center; margin-top: 12px; }
+.row-wrap { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.row-wrap input[type=search] { flex: 1 1 220px; width: auto; }
+.row-wrap select, .small-select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 13px; }
+.table-wrap { overflow-x: auto; }
+.table td, .table th { font-size: 14px; white-space: nowrap; }
+.log-table tr.log-logout td { color: var(--muted); }
+.log-table tr.log-signup td:nth-child(4) { color: var(--good); font-weight: 700; }
+#tab-users input[type=search] { margin: 10px 0; }

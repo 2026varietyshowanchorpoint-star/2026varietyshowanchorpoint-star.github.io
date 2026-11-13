@@ -1,11 +1,12 @@
 // 소비자용 화면
 import { SHOP } from './config.js';
-import { store, DEMO } from './store.js';
+import { store, DEMO, setPage } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
   openModal, closeModal, registerSW, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
 } from './ui.js';
 
+setPage('order');
 registerSW();
 
 const state = {
@@ -27,7 +28,6 @@ document.title = SHOP.title;
 $('#foot').innerHTML = [
   SHOP.contact && esc(SHOP.contact),
   SHOP.instagram && `<a href="${esc(SHOP.instagram)}" target="_blank" rel="noopener">인스타그램</a>`,
-  `<a href="admin.html">관리자</a>`,
 ].filter(Boolean).join(' · ');
 
 $$('.tab').forEach(t => t.addEventListener('click', () => showTab(t.dataset.tab)));
@@ -40,7 +40,7 @@ function showTab(name) {
 
 function renderBanners() {
   const out = [];
-  if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. <a href="admin.html" target="_blank">관리자 화면</a>을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
+  if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. 펀드 화면(fund.html)을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
   if (!isOpen()) out.push(`<div class="banner danger">지금은 주문을 받지 않아요.</div>`);
   if (state.settings.notice) out.push(`<div class="banner">${esc(state.settings.notice)}</div>`);
   $('#banners').innerHTML = out.join('');
@@ -84,6 +84,7 @@ function openLogin(after) {
         <button class="btn" type="submit" data-mode="up">회원가입</button>
       </div>
     </form>
+    <p class="muted small-note">로그인하면 이메일과 접속 시간이 기록돼요.</p>
     <button class="btn ghost wide" id="closeBtn">닫기</button>`);
   const done = () => { closeModal(); toast('로그인했어요.'); if (after) after(); };
   $('#gBtn', m).onclick = async () => {
