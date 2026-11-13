@@ -19,8 +19,11 @@ export const STATUS_MESSAGE = {
   cancelled: '주문이 취소됐어요.',
 };
 
-export const PAYMENT = { transfer: '계좌이체 (선불)', cash: '현금 (후불)' };
+export const PAYMENT = { transfer: '계좌이체 (선불)', cash: '현금 (후불)', credit: '외상' };
+// 현장 주문지에서 쓰는 짧은 이름과 색 (사진의 현금/계좌/외상)
+export const WALKUP_PAY = [['cash', '현금'], ['transfer', '계좌'], ['credit', '외상']];
 export const CATEGORY = { food: '음식', drink: '음료' };
+export const DAYS = ['월', '화', '수', '목', '금'];
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];

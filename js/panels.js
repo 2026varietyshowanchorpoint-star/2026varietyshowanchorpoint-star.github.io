@@ -2,7 +2,7 @@
 // 페이지는 따로지만 기능 코드는 한 곳에서 고치도록 여기 모았다.
 import { SHOP } from './config.js';
 import { store } from './store.js';
-import { $, $$, won, esc, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, CATEGORY } from './ui.js';
+import { $, $$, won, esc, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, WALKUP_PAY, CATEGORY, DAYS } from './ui.js';
 
 /* ---------- 로그인 화면 (펀드/개발자 공통) ---------- */
 
@@ -267,6 +267,7 @@ export function renderStats(root, orders) {
       <div class="stat"><span>총 매출</span><strong>${won(sum(valid))}</strong></div>
       <div class="stat"><span>현금</span><strong>${won(sum(valid.filter(o => o.payment === 'cash')))}</strong></div>
       <div class="stat"><span>계좌이체</span><strong>${won(sum(transfer))}</strong></div>
+      <div class="stat warn"><span>외상 받을 돈</span><strong>${won(sum(valid.filter(o => o.payment === 'credit')))} (${valid.filter(o => o.payment === 'credit').length}건)</strong></div>
       <div class="stat warn"><span>입금 확인 전</span><strong>${won(sum(unpaid))} (${unpaid.length}건)</strong></div>
       <div class="stat"><span>취소</span><strong>${orders.length - valid.length}건</strong></div>
     </div>
@@ -311,77 +312,142 @@ export function mountSettings(root) {
 
 /* ---------- 현장 주문 기록 ---------- */
 
-// 펀드 담당자가 부스 앞에서 받은 주문을 직접 적는 곳. 온라인 주문과 같은 orders에 저장돼서
-// 주문판·회계·매출에 똑같이 잡힌다. 계좌이체는 bankInfo가 있을 때만 고를 수 있다.
+// 부스 앞에서 받은 주문을 스프레드시트처럼 줄줄이 적는 기록지.
+// 한 줄 = 주문 하나. "기록하기"를 누르면 다 채운 줄이 온라인 주문과 같은 orders에 저장돼서
+// 주문판·회계·매출에 똑같이 들어간다. 계좌는 bankInfo가 있어도 현장에서는 늘 고를 수 있다.
 export function mountWalkup(root) {
-  const canTransfer = !!SHOP.bankInfo;
-  root.innerHTML = `
-    <div class="card">
-      <h3>현장 주문 기록</h3>
-      <p class="muted">부스에서 바로 받은 주문을 적어요. 적으면 주문판과 회계 정리에 같이 들어가요.</p>
-      <form class="form" data-r="form">
-        <div class="row-wrap">
-          <input name="student" placeholder="이름 학년반 (예: ${esc(SHOP.studentHint)})" required>
-          <select name="payment">
-            <option value="cash">${PAYMENT.cash}</option>
-            ${canTransfer ? `<option value="transfer">${PAYMENT.transfer}</option>` : ''}
-          </select>
-        </div>
-        <div class="walkup-items" data-r="items"></div>
-        <div class="walkup-total">합계 <strong data-r="total">0원</strong></div>
-        <button class="btn primary" type="submit" data-r="submit">현장 주문 기록</button>
-      </form>
-    </div>`;
-  const R = n => $(`[data-r=${n}]`, root);
+  const EMPTY_ROWS = 8;        // 처음에 비워 둘 줄 수
+  const payOpts = WALKUP_PAY;  // 현장은 현금·계좌·외상 셋 다
   let menu = [];
-  const qty = {}; // menuId -> 수량
+  let rows = [];               // { id, student, item, qty, price, pay, day, saved }
+  let seq = 0;
+  const R = n => $(`[data-r=${n}]`, root);
+  const newRow = () => ({ id: 'r' + (++seq), student: '', item: '', qty: 1, price: 0, pay: 'credit', day: '', saved: false });
+  const menuById = id => menu.find(m => m.id === id);
 
-  function renderItems() {
-    R('items').innerHTML = menu.length ? menu.map(m => `
-      <div class="walkup-row ${m.soldOut ? 'sold' : ''}" data-id="${esc(m.id)}">
-        <span class="wu-name">${esc(m.name)}${m.soldOut ? ' (품절)' : ''}</span>
-        <span class="wu-price">${won(m.price)}</span>
-        <div class="stepper">
-          <button type="button" data-act="minus" aria-label="빼기" ${(qty[m.id] || 0) ? '' : 'disabled'}>−</button>
-          <span>${qty[m.id] || 0}</span>
-          <button type="button" data-act="plus" aria-label="더하기">+</button>
-        </div>
-      </div>`).join('') : '<p class="empty">메뉴가 없어요.</p>';
-    const total = menu.reduce((s, m) => s + (qty[m.id] || 0) * (Number(m.price) || 0), 0);
-    R('total').textContent = won(total);
+  root.innerHTML = `
+    <div class="card sheet-card">
+      <div class="sheet-head">
+        <div><h3>현장 주문 기록지</h3><p class="muted">줄마다 하나씩 적고 아래 "기록하기"를 눌러요. 기록하면 주문판·회계에 들어가요.</p></div>
+        <div class="sheet-count" data-r="count"></div>
+      </div>
+      <div class="sheet-wrap">
+        <table class="sheet">
+          <thead><tr>
+            <th class="c-no">#</th><th class="c-name">이름 학년반</th><th class="c-item">물품</th>
+            <th class="c-qty">수량</th><th class="c-price">가격</th><th class="c-pay">결제</th>
+            <th class="c-day">요일</th><th class="c-del"></th>
+          </tr></thead>
+          <tbody data-r="rows"></tbody>
+        </table>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn" data-r="add">+ 줄 추가</button>
+        <div class="sheet-total">기록 대기 합계 <strong data-r="total">0원</strong></div>
+        <button class="btn primary" data-r="save">기록하기</button>
+      </div>
+    </div>`;
+
+  function itemCell(r) {
+    return `<select data-c="item" ${r.saved ? 'disabled' : ''}>
+      <option value="">선택</option>
+      ${menu.map(m => `<option value="${esc(m.id)}" ${r.item === m.id ? 'selected' : ''}>${esc(m.name)}${m.soldOut ? ' (품절)' : ''}</option>`).join('')}
+    </select>`;
+  }
+  function payCell(r) {
+    return `<select data-c="pay" class="pay-sel pay-${esc(r.pay)}" ${r.saved ? 'disabled' : ''}>
+      ${payOpts.map(([k, label]) => `<option value="${k}" ${r.pay === k ? 'selected' : ''}>${label}</option>`).join('')}
+    </select>`;
+  }
+  function dayCell(r) {
+    return `<select data-c="day" ${r.saved ? 'disabled' : ''}>
+      <option value="">-</option>
+      ${DAYS.map(d => `<option value="${d}" ${r.day === d ? 'selected' : ''}>${d}</option>`).join('')}
+    </select>`;
   }
 
-  R('items').addEventListener('click', e => {
-    const btn = e.target.closest('button[data-act]');
-    if (!btn) return;
-    const id = btn.closest('.walkup-row').dataset.id;
-    const q = qty[id] || 0;
-    qty[id] = btn.dataset.act === 'plus' ? Math.min(q + 1, 50) : Math.max(q - 1, 0);
-    renderItems();
-  });
+  function render() {
+    R('rows').innerHTML = rows.map((r, i) => `
+      <tr data-id="${r.id}" class="${r.saved ? 'saved' : ''}">
+        <td class="c-no">${r.saved ? `#${r.number}` : i + 1}</td>
+        <td><input data-c="student" value="${esc(r.student)}" placeholder="9A 권율" ${r.saved ? 'disabled' : ''}></td>
+        <td>${itemCell(r)}</td>
+        <td><input type="number" data-c="qty" min="1" value="${esc(r.qty)}" ${r.saved ? 'disabled' : ''}></td>
+        <td><input type="number" data-c="price" min="0" step="100" value="${esc(r.price)}" ${r.saved ? 'disabled' : ''}></td>
+        <td>${payCell(r)}</td>
+        <td>${dayCell(r)}</td>
+        <td class="c-del">${r.saved ? '<span class="saved-tag">기록됨</span>' : `<button class="row-del" data-del aria-label="줄 지우기">×</button>`}</td>
+      </tr>`).join('');
+    const pending = rows.filter(r => !r.saved);
+    const total = pending.reduce((s, r) => s + (Number(r.price) || 0), 0);
+    R('total').textContent = won(total);
+    const saved = rows.filter(r => r.saved).length;
+    R('count').textContent = saved ? `기록됨 ${saved}건` : '';
+  }
 
-  R('form').onsubmit = async ev => {
-    ev.preventDefault();
-    const student = R('form').student.value.trim();
-    const items = menu.filter(m => qty[m.id] > 0).map(m => ({ id: m.id, name: m.name, price: Number(m.price) || 0, qty: qty[m.id] }));
-    if (!items.length) return toast('물품을 하나 이상 골라 주세요.', 'error');
-    const total = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const submit = R('submit');
-    submit.disabled = true;
-    try {
-      const res = await store.placeOrder({
-        uid: store.user.uid, email: store.user.email || '', student, location: '현장',
-        payment: R('form').payment.value, cashGiven: 0, note: '', items, total, source: 'walkup',
-      });
-      toast(`현장 주문 #${res.number} 기록했어요. ${won(total)}`, 'good');
-      Object.keys(qty).forEach(k => delete qty[k]);
-      R('form').reset();
-      renderItems();
-    } catch (e) { toast(errText(e), 'error'); }
-    submit.disabled = false;
+  // 물품이나 수량이 바뀌면 가격을 자동으로 다시 계산 (직접 고친 값은 다음 변경 전까지 유지)
+  function recalc(r) {
+    const m = menuById(r.item);
+    if (m) r.price = (Number(m.price) || 0) * (Number(r.qty) || 0);
+  }
+
+  R('rows').addEventListener('input', e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const r = rows.find(x => x.id === tr.dataset.id); if (!r || r.saved) return;
+    const c = e.target.dataset.c;
+    if (c === 'qty') { r.qty = Math.max(1, parseInt(e.target.value) || 1); recalc(r); R('total').textContent = won(rows.filter(x => !x.saved).reduce((s, x) => s + (Number(x.price) || 0), 0)); const pf = tr.querySelector('[data-c=price]'); if (pf) pf.value = r.price; }
+    else if (c === 'price') { r.price = Math.max(0, parseInt(e.target.value) || 0); R('total').textContent = won(rows.filter(x => !x.saved).reduce((s, x) => s + (Number(x.price) || 0), 0)); }
+    else if (c === 'student') r.student = e.target.value;
+  });
+  R('rows').addEventListener('change', e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    const r = rows.find(x => x.id === tr.dataset.id); if (!r || r.saved) return;
+    const c = e.target.dataset.c;
+    if (c === 'item') { r.item = e.target.value; recalc(r); render(); }
+    else if (c === 'pay') { r.pay = e.target.value; e.target.className = 'pay-sel pay-' + r.pay; }
+    else if (c === 'day') r.day = e.target.value;
+  });
+  R('rows').addEventListener('click', e => {
+    if (!e.target.closest('[data-del]')) return;
+    const id = e.target.closest('tr').dataset.id;
+    rows = rows.filter(r => r.id !== id);
+    if (!rows.length) rows.push(newRow());
+    render();
+  });
+  R('add').onclick = () => { rows.push(newRow()); render(); };
+
+  R('save').onclick = async () => {
+    const ready = rows.filter(r => !r.saved && r.student.trim() && r.item && r.qty > 0);
+    if (!ready.length) return toast('채운 줄이 없어요. 이름과 물품을 적어 주세요.', 'error');
+    R('save').disabled = true;
+    let ok = 0;
+    for (const r of ready) {
+      const m = menuById(r.item);
+      if (!m) continue;
+      const items = [{ id: m.id, name: m.name, price: Number(m.price) || 0, qty: r.qty }];
+      const total = Number(r.price) || items[0].price * r.qty;
+      try {
+        const res = await store.placeOrder({
+          uid: store.user.uid, email: store.user.email || '', student: r.student.trim(),
+          location: '현장', payment: r.pay, cashGiven: 0, note: '', day: r.day || '',
+          items, total, source: 'walkup',
+        });
+        r.saved = true; r.number = res.number; ok++;
+      } catch (e) { toast(errText(e), 'error'); }
+    }
+    // 빈 줄이 부족하면 몇 줄 더 깔아 둔다
+    const empties = rows.filter(r => !r.saved).length;
+    for (let i = empties; i < 4; i++) rows.push(newRow());
+    render();
+    R('save').disabled = false;
+    if (ok) toast(`${ok}건 기록했어요.`, 'good');
   };
 
-  const unsub = store.watchMenu(l => { menu = l; renderItems(); });
+  const unsub = store.watchMenu(l => {
+    menu = l;
+    if (!rows.length) rows = Array.from({ length: EMPTY_ROWS }, newRow);
+    render();
+  });
   return { unsub };
 }
 
@@ -431,19 +497,23 @@ export function mountAccounting(root) {
     </div>`;
   }
 
+  const PAY_KEYS = ['cash', 'transfer', 'credit']; // 회계에서 묶는 결제방법 순서
+
   function render() {
-    R('pay').innerHTML = [['all', '전체'], ['cash', PAYMENT.cash], ['transfer', PAYMENT.transfer]].map(([k, label]) => {
+    R('pay').innerHTML = [['all', '전체'], ...PAY_KEYS.map(k => [k, PAYMENT[k]])].map(([k, label]) => {
       const n = st.orders.filter(o => (st.withCancel || o.status !== 'cancelled') && (k === 'all' || o.payment === k)).length;
       return `<button class="chip ${st.pay === k ? 'on' : ''}" data-f="${k}">${label} ${n}</button>`;
     }).join('');
 
     const list = visible();
-    const grand = list.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (Number(o.total) || 0), 0);
-    let html = `<div class="acc-grand">합계 (취소 제외) <strong>${won(grand)}</strong> · ${list.filter(o => o.status !== 'cancelled').length}건</div>`;
+    const valid = list.filter(o => o.status !== 'cancelled');
+    const grand = valid.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    // 외상(받을 돈)은 따로도 보여준다
+    const credit = valid.filter(o => o.payment === 'credit').reduce((s, o) => s + (Number(o.total) || 0), 0);
+    let html = `<div class="acc-grand">합계 (취소 제외) <strong>${won(grand)}</strong> · ${valid.length}건${credit ? ` · 외상 받을 돈 <strong class="credit-amt">${won(credit)}</strong>` : ''}</div>`;
     if (st.pay === 'all') {
       // 결제방법으로 정리해서 보여준다
-      html += groupTable('현금 (후불)', list.filter(o => o.payment === 'cash'));
-      html += groupTable('계좌이체 (선불)', list.filter(o => o.payment === 'transfer'));
+      PAY_KEYS.forEach(k => { html += groupTable(PAYMENT[k], list.filter(o => o.payment === k)); });
     } else {
       html += groupTable(PAYMENT[st.pay] || st.pay, list);
     }
@@ -454,8 +524,8 @@ export function mountAccounting(root) {
   R('pay').addEventListener('click', e => { const f = e.target.closest('[data-f]')?.dataset.f; if (f) { st.pay = f; render(); } });
   R('cancel').addEventListener('change', e => { st.withCancel = e.target.checked; render(); });
   R('csv').onclick = () => downloadCsv(`회계정리_${today()}.csv`,
-    ['번호', '반 이름', '주문 내용', '수량', '총 가격', '결제방법', '상태'],
-    visible().map(o => [o.number, o.student, itemsText(o), qtyOf(o), o.total, PAYMENT[o.payment] || o.payment, STATUS[o.status]?.label || o.status]));
+    ['번호', '반 이름', '주문 내용', '수량', '총 가격', '결제방법', '요일', '현장', '상태'],
+    visible().map(o => [o.number, o.student, itemsText(o), qtyOf(o), o.total, PAYMENT[o.payment] || o.payment, o.day || '', o.source === 'walkup' ? 'O' : '', STATUS[o.status]?.label || o.status]));
 
   const unsub = store.watchAllOrders(list => { st.orders = list; render(); });
   return { unsub };

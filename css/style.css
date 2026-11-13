@@ -216,3 +216,33 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 .walkup-total { text-align: right; font-size: 15px; margin: 8px 0; }
 .walkup-total strong { font-size: 18px; color: var(--navy); }
 .tag-mini { font-size: 11px; background: #dde8ff; color: #2446a8; padding: 1px 5px; border-radius: 6px; }
+
+/* 현장 주문 기록지 (스프레드시트) */
+.sheet-card { padding: 14px; }
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sheet-head h3 { margin: 0; }
+.sheet-count { color: var(--good); font-weight: 700; white-space: nowrap; }
+.sheet-wrap { overflow-x: auto; margin: 10px 0; border: 1px solid #c9ccd4; border-radius: 8px; }
+.sheet { border-collapse: collapse; width: 100%; min-width: 640px; background: #fff; }
+.sheet th, .sheet td { border: 1px solid #d7dae1; padding: 0; text-align: left; }
+.sheet thead th { background: #f3bcc6; color: #3a2a2e; font-weight: 700; text-align: center; padding: 8px 6px; font-size: 13px; position: sticky; top: 0; }
+.sheet td { padding: 0; }
+.sheet input, .sheet select { width: 100%; border: 0; background: transparent; padding: 8px 8px; font: inherit; font-size: 14px; }
+.sheet input:focus, .sheet select:focus { outline: 2px solid #4a90e2; outline-offset: -2px; background: #eef5ff; }
+.sheet .c-no { width: 42px; text-align: center; color: var(--muted); font-size: 13px; }
+.sheet .c-qty { width: 64px; } .sheet .c-price { width: 92px; }
+.sheet .c-pay { width: 92px; } .sheet .c-day { width: 66px; } .sheet .c-del { width: 40px; text-align: center; }
+.sheet .c-item select { background: #d9ecfb; }
+/* 결제 색 (사진과 같게) */
+.pay-sel { font-weight: 600; text-align: center; border-radius: 4px; }
+.pay-sel.pay-cash { background: #6b2fb3; color: #fff; }
+.pay-sel.pay-transfer { background: #1f9d55; color: #fff; }
+.pay-sel.pay-credit { background: #e9edf2; color: #333; }
+.sheet tr.saved td { background: #f3f7f3; }
+.sheet tr.saved input, .sheet tr.saved select { color: #555; }
+.saved-tag { font-size: 11px; color: var(--good); font-weight: 700; }
+.row-del { border: 0; background: transparent; color: var(--bad); font-size: 18px; cursor: pointer; width: 100%; padding: 6px; }
+.sheet-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sheet-total { margin-left: auto; font-size: 15px; }
+.sheet-total strong { font-size: 18px; color: var(--navy); }
+.credit-amt { color: #b45309; }
