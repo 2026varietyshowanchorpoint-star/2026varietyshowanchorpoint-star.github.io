@@ -185,3 +185,8 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 .log-table tr.log-logout td { color: var(--muted); }
 .log-table tr.log-signup td:nth-child(4) { color: var(--good); font-weight: 700; }
 #tab-users input[type=search] { margin: 10px 0; }
+
+/* 메일 인증 */
+.verify-banner .verify-actions { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.table td.nowrap { white-space: nowrap; }
+.table td.nowrap .btn { margin-right: 4px; }

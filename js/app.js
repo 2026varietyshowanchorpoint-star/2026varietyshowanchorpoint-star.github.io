@@ -1,6 +1,6 @@
 // 소비자용 화면
 import { SHOP } from './config.js';
-import { store, DEMO, setPage } from './store.js';
+import { store, DEMO, setPage, validEmail } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
   openModal, closeModal, registerSW, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
@@ -43,9 +43,36 @@ function renderBanners() {
   if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. 펀드 화면(fund.html)을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
   if (!isOpen()) out.push(`<div class="banner danger">지금은 주문을 받지 않아요.</div>`);
   if (state.settings.notice) out.push(`<div class="banner">${esc(state.settings.notice)}</div>`);
+  // 메일로 가입했는데 아직 인증 안 한 사람
+  if (state.user && state.user.email && state.user.emailVerified === false) {
+    out.push(`<div class="banner warn verify-banner">
+      메일 인증이 아직 안 됐어요. ${DEMO ? '데모라 실제 메일은 안 가요.' : `<strong>${esc(state.user.email)}</strong> 메일함에서 인증 링크를 눌러 주세요.`}
+      <div class="verify-actions">
+        <button class="btn small" data-verify="resend">${DEMO ? '데모: 인증 완료 처리' : '인증 메일 다시 보내기'}</button>
+        ${DEMO ? '' : '<button class="btn small" data-verify="check">인증했어요 (새로고침)</button>'}
+      </div>
+    </div>`);
+  }
   $('#banners').innerHTML = out.join('');
 }
 const isOpen = () => (state.settings.open ?? SHOP.defaultOpen) !== false;
+
+$('#banners').addEventListener('click', async e => {
+  const act = e.target.closest('[data-verify]')?.dataset.verify;
+  if (!act) return;
+  try {
+    if (act === 'resend') {
+      await store.sendVerification();
+      if (DEMO) { state.user = store.user; renderBanners(); toast('인증 처리했어요.'); }
+      else toast('인증 메일을 다시 보냈어요. 메일함을 확인하세요.');
+    } else if (act === 'check') {
+      await store.reloadUser();
+      state.user = store.user;
+      renderBanners();
+      toast(state.user.emailVerified ? '인증됐어요!' : '아직 인증 전이에요. 메일 링크를 눌러 주세요.', state.user.emailVerified ? 'good' : 'error');
+    }
+  } catch (err) { toast(errText(err), 'error'); }
+});
 
 /* ---------- 로그인 ---------- */
 
@@ -65,6 +92,7 @@ store.onAuth(async u => {
     } catch (e) { console.error(e); }
     unwatchOrders = store.watchMyOrders(u.uid, onOrders);
   }
+  renderBanners();
   renderOrders();
 });
 
@@ -95,10 +123,18 @@ function openLogin(after) {
   $('#loginForm', m).onsubmit = async ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
+    const email = f.get('email');
+    if (!validEmail(email)) return toast('이메일 형식이 맞지 않아요.', 'error');
     try {
-      if (mode === 'up') await store.signUpEmail(f.get('email'), f.get('pw'));
-      else await store.signInEmail(f.get('email'), f.get('pw'));
-      done();
+      if (mode === 'up') {
+        await store.signUpEmail(email, f.get('pw'));
+        closeModal();
+        toast(DEMO ? '가입했어요.' : '가입했어요. 인증 메일을 보냈어요. 메일함을 확인하세요.', 'good');
+        if (after) after();
+      } else {
+        await store.signInEmail(email, f.get('pw'));
+        done();
+      }
     } catch (e) { toast(errText(e), 'error'); }
   };
   $('#closeBtn', m).onclick = closeModal;

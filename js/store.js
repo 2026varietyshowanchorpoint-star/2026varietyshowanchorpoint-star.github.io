@@ -8,6 +8,9 @@ const DEV_LIST = DEVELOPER_EMAILS.map(e => e.trim().toLowerCase()).concat(DEMO ?
 
 export const isDeveloper = u => !!(u && u.email && DEV_LIST.includes(u.email.toLowerCase()));
 
+// 메일 형식 확인. 공백 없는 로컬@도메인.최상위 형태만 통과시킨다.
+export const validEmail = s => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((s || '').trim());
+
 // 이 페이지 이름 (로그인 기록에 남는다): 'order' | 'fund' | 'dev'
 let pageName = 'order';
 export function setPage(name) { pageName = name; }
@@ -102,14 +105,18 @@ function makeDemoStore() {
     for (const c of email) h = (h * 31 + c.charCodeAt(0)) | 0;
     return 'demo_' + Math.abs(h).toString(36);
   }
+  function authObj(uid) {
+    const u = db.users[uid];
+    return { uid, email: u.email, displayName: u.name, emailVerified: u.emailVerified !== false };
+  }
   function loginAs(email, name, extra = {}) {
     email = email.trim().toLowerCase();
     const uid = demoUid(email);
     const isNew = !db.users[uid];
-    db.users[uid] = { ...(db.users[uid] || { uid, email, name: name || email.split('@')[0], createdAt: Date.now() }), ...extra };
+    db.users[uid] = { ...(db.users[uid] || { uid, email, name: name || email.split('@')[0], emailVerified: true, createdAt: Date.now() }), ...extra };
     save();
     if (!pending) pending = { type: isNew ? 'signup' : 'login', method: 'email' };
-    setAuth({ uid, email, displayName: db.users[uid].name });
+    setAuth(authObj(uid));
     return authUser;
   }
 
@@ -117,8 +124,31 @@ function makeDemoStore() {
     onAuth(cb) { authListeners.add(cb); setTimeout(() => cb(authUser), 0); return () => authListeners.delete(cb); },
     get user() { return authUser; },
     async signInGoogle() { pending = { type: 'login', method: 'google' }; return loginAs('demo.student@example.com', '데모 학생'); },
-    async signInEmail(email) { pending = { type: 'login', method: 'email' }; return loginAs(email); },
-    async signUpEmail(email) { pending = { type: 'signup', method: 'email' }; return loginAs(email); },
+    async signInEmail(email) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      pending = { type: 'login', method: 'email' };
+      return loginAs(email);
+    },
+    async signUpEmail(email) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      pending = { type: 'signup', method: 'email' };
+      // 데모에서는 새 가입이면 미인증 상태로 만든다 (인증 메일은 못 보내니 데모 인증 버튼으로 처리)
+      const uid = demoUid(email.trim().toLowerCase());
+      const isNew = !db.users[uid];
+      const u = loginAs(email);
+      if (isNew) { db.users[uid].emailVerified = false; save(); authUser = authObj(uid); authListeners.forEach(fn => fn(authUser)); }
+      return u;
+    },
+    // 데모: 인증 메일 대신 바로 인증 처리 (실제 모드에서는 메일 링크로 인증)
+    async sendVerification() {
+      if (authUser) { db.users[authUser.uid].emailVerified = true; save(); authUser = authObj(authUser.uid); authListeners.forEach(fn => fn(authUser)); }
+      return 'demo';
+    },
+    async reloadUser() { if (authUser) { authUser = authObj(authUser.uid); } return authUser; },
+    async sendPasswordReset(email) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      return 'demo';
+    },
     async signOut() {
       if (authUser) { writeLog(authUser, 'logout', ''); markLogged(authUser.uid, false); }
       setAuth(null);
@@ -201,7 +231,7 @@ async function makeFirebaseStore() {
       await F.addDoc(F.collection(fs, 'login_logs'), { ...makeLog(u, type, method), createdAt: F.serverTimestamp() });
       if (type !== 'logout') {
         await F.setDoc(F.doc(fs, 'users', u.uid), {
-          uid: u.uid, email: (u.email || '').toLowerCase(),
+          uid: u.uid, email: (u.email || '').toLowerCase(), emailVerified: !!u.emailVerified,
           lastLoginAt: F.serverTimestamp(), loginCount: F.increment(1),
         }, { merge: true });
       }
@@ -237,12 +267,30 @@ async function makeFirebaseStore() {
       try { return (await A.signInWithPopup(auth, p)).user; } catch (e) { pending = null; throw e; }
     },
     async signInEmail(email, pw) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
       pending = { type: 'login', method: 'email' };
       try { return (await A.signInWithEmailAndPassword(auth, email.trim(), pw)).user; } catch (e) { pending = null; throw e; }
     },
     async signUpEmail(email, pw) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
       pending = { type: 'signup', method: 'email' };
-      try { return (await A.createUserWithEmailAndPassword(auth, email.trim(), pw)).user; } catch (e) { pending = null; throw e; }
+      try {
+        const cred = await A.createUserWithEmailAndPassword(auth, email.trim(), pw);
+        try { await A.sendEmailVerification(cred.user); } catch (e) { console.error('인증 메일 발송 실패', e); }
+        return cred.user;
+      } catch (e) { pending = null; throw e; }
+    },
+    // 지금 로그인한 사람에게 인증 메일을 다시 보낸다
+    async sendVerification() {
+      if (!current) throw new Error('로그인이 필요해요.');
+      await A.sendEmailVerification(current);
+    },
+    // 메일 링크를 눌렀는지 서버에서 다시 확인한다
+    async reloadUser() { if (current) { await current.reload(); current = auth.currentUser; } return current; },
+    // 비밀번호 재설정 메일 (개발자가 학생을 도울 때)
+    async sendPasswordReset(email) {
+      if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      await A.sendPasswordResetEmail(auth, email.trim());
     },
     async signOut() {
       if (current) { await writeLog(current, 'logout', ''); markLogged(current.uid, false); }

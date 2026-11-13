@@ -124,11 +124,15 @@ function renderUsers() {
         <select data-role>
           ${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${(u.role || '') === k ? 'selected' : ''}>${v}</option>`).join('')}
         </select>`}</td>
+      <td>${u.emailVerified === false ? '<span class="badge badge-red">미인증</span>' : '<span class="badge badge-green">인증됨</span>'}</td>
       <td>${timeText(u.lastLoginAt)}</td>
       <td>${u.loginCount || 0}</td>
-      <td><button class="btn ghost small" data-logs="${esc(u.email || '')}">기록 보기</button></td>
+      <td class="nowrap">
+        <button class="btn ghost small" data-logs="${esc(u.email || '')}">기록 보기</button>
+        ${u.email ? `<button class="btn ghost small" data-reset="${esc(u.email)}">재설정 메일</button>` : ''}
+      </td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6">사용자가 없어요.</td></tr>';
+  }).join('') || '<tr><td colspan="7">사용자가 없어요.</td></tr>';
 }
 $('#userSearch').addEventListener('input', renderUsers);
 $('#userRows').addEventListener('change', async e => {
@@ -136,7 +140,15 @@ $('#userRows').addEventListener('change', async e => {
   const uid = e.target.closest('tr').dataset.uid;
   try { await store.setRole(uid, e.target.value); toast('권한을 바꿨어요.'); } catch (err) { toast(errText(err), 'error'); }
 });
-$('#userRows').addEventListener('click', e => {
+$('#userRows').addEventListener('click', async e => {
+  const reset = e.target.closest('[data-reset]');
+  if (reset) {
+    const email = reset.dataset.reset;
+    if (!confirm(`${email} 으로 비밀번호 재설정 메일을 보낼까요?\n받은 사람이 직접 새 비밀번호를 정하게 돼요.`)) return;
+    try { await store.sendPasswordReset(email); toast(DEMO ? '데모라 실제로는 안 가요.' : '재설정 메일을 보냈어요.', 'good'); }
+    catch (err) { toast(errText(err), 'error'); }
+    return;
+  }
   const b = e.target.closest('[data-logs]');
   if (!b) return;
   $('#logSearch').value = b.dataset.logs;
