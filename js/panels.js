@@ -9,6 +9,7 @@ import { $, $$, won, esc, timeText, badge, toast, errText, notify, beep, STATUS,
 export function loginGate(root, { title, demoButton }) {
   root.innerHTML = `
     <div class="card narrow">
+      <div class="gate-logo" aria-label="로고 자리">로고<br>자리</div>
       <h2>${esc(title)}</h2>
       ${demoButton ? `<button class="btn primary wide" id="demoBtn">${esc(demoButton.label)}</button><div class="or">또는</div>` : ''}
       <button class="btn google wide" id="gBtn">구글 계정으로 로그인</button>

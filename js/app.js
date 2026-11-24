@@ -24,6 +24,8 @@ let unwatchOrders = null;
 
 $('#shopTitle').textContent = SHOP.title;
 $('#shopSub').textContent = SHOP.subtitle;
+$('#heroTitle').textContent = SHOP.title;
+$('#heroSub').textContent = SHOP.subtitle;
 document.title = SHOP.title;
 $('#foot').innerHTML = [
   SHOP.contact && esc(SHOP.contact),
@@ -54,6 +56,9 @@ function renderBanners() {
     </div>`);
   }
   $('#banners').innerHTML = out.join('');
+  const pill = $('#openPill');
+  pill.textContent = isOpen() ? '주문 받는 중' : '주문 마감';
+  pill.className = 'pill ' + (isOpen() ? 'open' : 'closed');
 }
 const isOpen = () => (state.settings.open ?? SHOP.defaultOpen) !== false;
 
@@ -199,8 +204,8 @@ function renderMenu() {
       ${items.map(m => {
         const q = state.cart[m.id] || 0;
         return `
-        <div class="menu-card ${m.soldOut ? 'sold' : ''}" data-id="${esc(m.id)}">
-          ${m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="" loading="lazy">` : ''}
+        <div class="menu-card ${m.soldOut ? 'sold' : ''} ${q ? 'in-cart' : ''}" data-id="${esc(m.id)}">
+          ${m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="" loading="lazy">` : `<div class="menu-thumb" aria-hidden="true">${esc([...(m.name || '?')][0])}</div>`}
           <div class="menu-info">
             <div class="menu-name">${esc(m.name)}</div>
             ${m.description ? `<div class="menu-desc">${esc(m.description)}</div>` : ''}
@@ -271,9 +276,9 @@ function openCheckout() {
       <label>배달 위치 *<input name="location" required value="${esc(p.location || '')}" placeholder="${esc(SHOP.locationHint)}"></label>
       <fieldset>
         <legend>결제 방식 *</legend>
-        <label class="radio"><input type="radio" name="payment" value="cash" required checked> ${PAYMENT.cash}</label>
-        <label class="radio"><input type="radio" name="payment" value="transfer" required> ${PAYMENT.transfer}</label>
-        <label class="radio"><input type="radio" name="payment" value="credit" required> ${PAYMENT.credit} (나중에 결제)</label>
+        <label class="radio"><input type="radio" name="payment" value="cash" required checked>현금<span class="pay-hint">받을 때 내기</span></label>
+        <label class="radio"><input type="radio" name="payment" value="transfer" required>계좌이체<span class="pay-hint">먼저 입금</span></label>
+        <label class="radio"><input type="radio" name="payment" value="credit" required>외상<span class="pay-hint">나중에 내기</span></label>
       </fieldset>
       <div id="bankBox" class="bank hidden">${SHOP.bankInfo
         ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong><br>입금자명은 학년 반 이름으로 해 주세요.`
@@ -328,10 +333,13 @@ function openCheckout() {
 function showDone(number, order) {
   const m = openModal(`
     <div class="done">
-      <div class="done-num">#${number}</div>
+      <div class="done-check" aria-hidden="true">✓</div>
       <h2>주문이 접수됐어요</h2>
+      <div class="done-label">주문 번호</div>
+      <div class="done-num">#${number}</div>
       <p>${won(order.total)} · ${esc(PAYMENT[order.payment])}</p>
-      ${order.payment === 'transfer' ? `<p class="bank">입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong></p>` : ''}
+      ${order.payment === 'transfer' ? `<p class="bank">${SHOP.bankInfo ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong>` : '계좌 정보는 담당자가 곧 안내할게요.'}</p>` : ''}
+      ${order.payment === 'credit' ? '<p class="bank">외상으로 주문했어요. 나중에 펀드 담당자에게 내 주세요.</p>' : ''}
       <p class="muted">음식이 나오면 알려 드릴게요. 알림을 허용해 주세요.</p>
     </div>
     <button class="btn primary wide" id="okBtn">내 주문 보기</button>`);
@@ -387,7 +395,7 @@ function renderOrders() {
       <ul class="items">${(o.items || []).map(i => `<li>${esc(i.name)} × ${esc(i.qty)}</li>`).join('')}</ul>
       <div class="meta">
         <span>${esc(o.location)}</span>
-        <span>${esc(PAYMENT[o.payment] || o.payment)}${o.payment === 'transfer' ? (o.paid ? ' · 입금 확인됨' : ' · 입금 확인 전') : ''}</span>
+        ${o.payment === 'transfer' ? `<span>${o.paid ? '입금 확인됨' : '입금 확인 전'}</span>` : ''}
         <strong>${won(o.total)}</strong>
       </div>
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}

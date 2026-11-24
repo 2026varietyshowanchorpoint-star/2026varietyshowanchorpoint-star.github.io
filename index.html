@@ -3,23 +3,37 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1f2a44">
+  <meta name="theme-color" content="#1e2440">
+  <meta name="description" content="벌티 펀드 음식 주문">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="펀드 주문">
   <title>펀드 주문</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <header class="topbar">
+    <div class="logo-slot" aria-label="로고 자리">로고<br>자리</div>
     <div>
       <h1 id="shopTitle">펀드 주문</h1>
       <p id="shopSub" class="sub"></p>
     </div>
     <button id="userBtn" class="btn ghost small">로그인</button>
   </header>
+
+  <section class="hero">
+    <div class="hero-card">
+      <div class="hero-logo" aria-label="로고 자리">로고<br>자리</div>
+      <div class="hero-text">
+        <h2 id="heroTitle">벌티 펀드</h2>
+        <p id="heroSub"></p>
+        <span id="openPill" class="pill open">주문 받는 중</span>
+      </div>
+    </div>
+  </section>
 
   <div id="banners"></div>
 
