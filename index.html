@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1e2440">
+  <meta name="theme-color" content="#1c1640">
   <meta name="description" content="벌티 펀드 음식 주문">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="펀드 주문">
@@ -11,30 +11,26 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2/fonts/variable/woff2/SUIT-Variable.css">
+  <link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
   <header class="topbar">
     <div class="logo-slot" aria-label="로고 자리">로고<br>자리</div>
-    <div>
-      <h1 id="shopTitle">펀드 주문</h1>
+    <div class="topbar-title">
+      <h1 id="shopTitle">벌티 펀드</h1>
       <p id="shopSub" class="sub"></p>
     </div>
-    <button id="userBtn" class="btn ghost small">로그인</button>
+    <button id="userBtn" class="btn on-dark small">로그인</button>
   </header>
 
-  <section class="hero">
-    <div class="hero-card">
-      <div class="hero-logo" aria-label="로고 자리">로고<br>자리</div>
-      <div class="hero-text">
-        <h2 id="heroTitle">벌티 펀드</h2>
-        <p id="heroSub"></p>
-        <span id="openPill" class="pill open">주문 받는 중</span>
-        <div id="readyNums" class="ready-nums hidden"></div>
-      </div>
-    </div>
-  </section>
+  <div class="now">
+    <span id="openPill" class="pill open">주문 받는 중</span>
+    <div id="readyNums" class="ready-nums hidden"></div>
+  </div>
 
   <div id="banners"></div>
 
@@ -53,7 +49,7 @@
   </main>
 
   <div id="cartBar" class="cartbar hidden">
-    <div><span id="cartCount">0</span>개 · <strong id="cartTotal">0원</strong></div>
+    <div class="cart-sum"><span class="cart-count"><span id="cartCount">0</span>개 담음</span><strong id="cartTotal">0원</strong></div>
     <button id="checkoutBtn" class="btn primary">주문하기</button>
   </div>
 

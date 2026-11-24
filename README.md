@@ -41,15 +41,20 @@ Firebase API 키는 Google Cloud 콘솔에서 `https://2026varietyshowanchorpoin
 
 Firebase Hosting을 쓰고 싶으면 `npm i -g firebase-tools` 후 `firebase login`, `firebase use --add`, `firebase deploy`를 하면 된다. `firebase.json`이 이미 있어서 규칙과 사이트가 같이 올라간다.
 
+## 디자인
+
+공연장 매점을 생각하고 만들었다. 색은 무대 남색(#1c1640), 객석 전구 노랑(#ffd43b), 팝콘 빨강(#e5383b, 학생 화면의 주문 버튼에만), 차가운 흰 종이(#f3f2f8), 민트(#12a06d, 완료·입금 확인)를 쓴다. 글꼴은 주문 번호와 큰 제목에만 Black Han Sans, 나머지는 SUIT다.
+
+주문 번호는 절취선이 있는 표 모양이다. 주문을 마치면 노란 표가 위에서 뽑혀 나오고, 내 주문과 펀드 주문판의 카드도 왼쪽 번호표와 오른쪽 내용 사이에 절취선이 있다. 메뉴는 매점 가격판처럼 한 장의 목록이다. 머리의 전구 줄과 노란 "방금 나온 번호" 띠는 학생 화면에만 있는 노란 띠와 짝을 이룬다.
+
 ## 로고 넣기
 
 로고가 아직 없어서 화면에 점선 네모로 "로고 자리"가 들어가 있다. 세 군데다.
 
 - 세 화면(index.html, fund.html, dev.html) 맨 위 헤더 왼쪽의 `logo-slot`
-- 학생 화면 주황색 소개 카드 안의 `hero-logo`
 - 펀드·개발자 로그인 카드 위의 `gate-logo` (js/panels.js의 loginGate)
 
-로고 파일이 나오면 icons/logo.png로 올리고, 각 자리의 `로고<br>자리` 글자를 `<img src="icons/logo.png" alt="벌티">`로 바꾼다. 점선을 없애려면 css/style.css에서 `.logo-slot`, `.hero-logo`, `.gate-logo`의 border를 지운다. 홈 화면 아이콘(icons/icon-192.png, icon-512.png)도 같은 로고로 바꾸면 된다.
+로고 파일이 나오면 icons/logo.png로 올리고, 각 자리의 `로고<br>자리` 글자를 `<img src="icons/logo.png" alt="벌티">`로 바꾼다. 점선을 없애려면 css/style.css에서 `.logo-slot`, `.gate-logo`의 border를 지운다. 홈 화면 아이콘(icons/icon-192.png, icon-512.png)도 같은 로고로 바꾸면 된다.
 
 ## 판매자(펀드 담당) 화면
 

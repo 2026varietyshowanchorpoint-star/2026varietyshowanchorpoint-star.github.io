@@ -1,7 +1,7 @@
 // 펀드 담당자 화면: 주문 처리, 메뉴·품절, 매출, 운영
 // 들어올 수 있는 사람: role이 'fund'인 사용자, 개발자
 import { store, DEMO, setPage, isDeveloper } from './store.js';
-import { $, toast, askNotify } from './ui.js';
+import { $, esc, toast, askNotify } from './ui.js';
 import { loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, mountWalkup, renderStats, tabs } from './panels.js';
 
 setPage('fund');
@@ -45,7 +45,7 @@ store.onAuth(async u => {
 
   $('#gate').classList.add('hidden');
   $('#app').classList.remove('hidden');
-  $('#who').textContent = `${u.email || ''} · ${dev ? '개발자' : '펀드 담당'}`;
+  $('#who').innerHTML = `<span class="role-tag ${dev ? 'dev' : 'fund'}">${dev ? '개발자' : '펀드 담당'}</span>${esc(u.email || '')}`;
   askNotify();
 
   ordersPanel = mountOrders($('#tab-orders'), {

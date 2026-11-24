@@ -24,8 +24,6 @@ let unwatchOrders = null;
 
 $('#shopTitle').textContent = SHOP.title;
 $('#shopSub').textContent = SHOP.subtitle;
-$('#heroTitle').textContent = SHOP.title;
-$('#heroSub').textContent = SHOP.subtitle;
 document.title = SHOP.title;
 $('#foot').innerHTML = [
   SHOP.contact && esc(SHOP.contact),
@@ -65,7 +63,7 @@ function renderBanners() {
   const ready = state.settings.ready || [];
   const fresh = ready.length && Date.now() - (state.settings.readyAt || 0) < 60 * 60 * 1000;
   $('#readyNums').classList.toggle('hidden', !fresh);
-  if (fresh) $('#readyNums').innerHTML = `<span>방금 나온 번호</span>${ready.map(n => `<b>#${esc(n)}</b>`).join('')}`;
+  if (fresh) $('#readyNums').innerHTML = `<span>방금 나온 번호</span>${ready.map((n, i) => `<b class="${i === 0 ? 'latest' : ''}">${esc(n)}</b>`).join('')}`;
 }
 const isOpen = () => (state.settings.open ?? SHOP.defaultOpen) !== false;
 
@@ -206,33 +204,35 @@ function renderMenu() {
   const groups = {};
   state.menu.forEach(m => (groups[m.category || 'food'] ||= []).push(m));
   $('#menuList').innerHTML = Object.entries(groups).map(([cat, items]) => `
-    <h2 class="cat">${esc(CATEGORY[cat] || cat)}</h2>
-    <div class="menu-grid">
+    <section class="board">
+      <h2 class="board-cat">${esc(CATEGORY[cat] || cat)}</h2>
+      <ul class="board-list">
       ${items.map(m => {
         const q = state.cart[m.id] || 0;
         return `
-        <div class="menu-card ${m.soldOut ? 'sold' : ''} ${q ? 'in-cart' : ''}" data-id="${esc(m.id)}">
-          ${m.imageUrl ? `<img src="${esc(m.imageUrl)}" alt="" loading="lazy">` : `<div class="menu-thumb" aria-hidden="true">${esc([...(m.name || '?')][0])}</div>`}
-          <div class="menu-info">
-            <div class="menu-name">${esc(m.name)}</div>
-            ${m.description ? `<div class="menu-desc">${esc(m.description)}</div>` : ''}
-            <div class="menu-price">${won(m.price)}</div>
+        <li class="board-row ${m.soldOut ? 'sold' : ''} ${q ? 'in-cart' : ''}" data-id="${esc(m.id)}">
+          ${m.imageUrl ? `<img class="board-img" src="${esc(m.imageUrl)}" alt="" loading="lazy">` : ''}
+          <div class="board-main">
+            <span class="board-name">${esc(m.name)}</span>
+            ${m.description ? `<span class="board-desc">${esc(m.description)}</span>` : ''}
+            <span class="board-price">${won(m.price)}</span>
           </div>
-          ${m.soldOut ? '<div class="soldtag">품절</div>' : `
-          <div class="stepper">
-            <button data-act="minus" aria-label="빼기" ${q ? '' : 'disabled'}>−</button>
-            <span>${q}</span>
-            <button data-act="plus" aria-label="더하기">+</button>
+          ${m.soldOut ? '<span class="soldtag">품절</span>' : `
+          <div class="stepper ${q ? 'has' : ''}">
+            <button data-act="minus" aria-label="${esc(m.name)} 빼기" ${q ? '' : 'disabled'}>−</button>
+            <span aria-live="polite">${q}</span>
+            <button data-act="plus" aria-label="${esc(m.name)} 더하기">+</button>
           </div>`}
-        </div>`;
+        </li>`;
       }).join('')}
-    </div>`).join('');
+      </ul>
+    </section>`).join('');
 }
 
 $('#menuList').addEventListener('click', e => {
   const btn = e.target.closest('button[data-act]');
   if (!btn) return;
-  const id = btn.closest('.menu-card').dataset.id;
+  const id = btn.closest('.board-row').dataset.id;
   const q = state.cart[id] || 0;
   if (btn.dataset.act === 'plus') state.cart[id] = Math.min(q + 1, 20);
   else if (q <= 1) delete state.cart[id];
@@ -348,16 +348,24 @@ function openCheckout() {
 }
 
 function showDone(number, order) {
+  const how = order.pickup ? '부스에서 픽업' : `${order.location}로 배달`;
   const m = openModal(`
     <div class="done">
-      <div class="done-check" aria-hidden="true">✓</div>
-      <h2>주문이 접수됐어요</h2>
-      <div class="done-label">주문 번호</div>
-      <div class="done-num">#${number}</div>
-      <p>${won(order.total)} · ${esc(PAYMENT[order.payment])}</p>
-      ${order.payment === 'transfer' ? `<p class="bank">${SHOP.bankInfo ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong>` : '계좌 정보는 담당자가 곧 안내할게요.'}</p>` : ''}
-      ${order.payment === 'credit' ? `<p class="bank">외상으로 주문했어요. 나중에 펀드 담당자에게 내거나${SHOP.bankInfo ? ` <strong>${esc(SHOP.bankInfo)}</strong>로 보내 주세요.` : ' 계좌로 보내 주세요.'}</p>` : ''}
-      <p class="muted">${order.pickup ? '음식이 나오면 알려 드릴게요. 주문 번호를 부스에 말해 주세요.' : '배달을 출발하면 알려 드릴게요.'} 알림을 허용해 주세요.</p>
+      <h2>주문이 들어갔어요</h2>
+      <div class="ticket ticket-big">
+        <div class="ticket-head">
+          <span class="ticket-label">주문 번호</span>
+          <span class="ticket-num">${esc(number)}</span>
+        </div>
+        <div class="ticket-body">
+          <ul class="ticket-items">${order.items.map(i => `<li><span>${esc(i.name)}</span><span>${esc(i.qty)}개</span></li>`).join('')}</ul>
+          <div class="ticket-foot"><span>${esc(how)}</span><strong>${won(order.total)}</strong></div>
+          <div class="ticket-pay">${esc(PAYMENT[order.payment])}</div>
+        </div>
+      </div>
+      ${order.payment === 'transfer' ? `<p class="bank">${SHOP.bankInfo ? `입금 계좌 <strong>${esc(SHOP.bankInfo)}</strong>` : '계좌 정보는 담당자가 곧 안내할게요.'}</p>` : ''}
+      ${order.payment === 'credit' ? `<p class="bank">외상이에요. 나중에 펀드 담당자에게 내거나${SHOP.bankInfo ? ` <strong>${esc(SHOP.bankInfo)}</strong>로 보내 주세요.` : ' 계좌로 보내 주세요.'}</p>` : ''}
+      <p class="muted">${order.pickup ? '음식이 나오면 알려 드릴게요. 부스에서 이 번호를 말해 주세요.' : '배달을 출발하면 알려 드릴게요.'}</p>
     </div>
     <button class="btn primary wide" id="okBtn">내 주문 보기</button>`);
   $('#okBtn', m).onclick = () => { closeModal(); showTab('orders'); };
@@ -406,23 +414,29 @@ function renderOrders() {
           `<li class="${STATUS_FLOW.indexOf(s) <= step ? 'on' : ''}">${STATUS[s].label}</li>`).join('')}
       </ol>`;
     return `
-    <article class="order-card st-${esc(o.status)}">
-      <header><span class="num">#${esc(o.number)}</span>${badge(o.status)}<span class="pay-tag">${esc(PAYMENT[o.payment] || o.payment)}</span><span class="time">${timeText(o.createdAt)}</span></header>
-      ${steps}
-      <ul class="items">${(o.items || []).map(i => `<li>${esc(i.name)} × ${esc(i.qty)}</li>`).join('')}</ul>
-      <div class="meta">
-        <span>${esc(o.location)}</span>
-        ${o.payment === 'transfer' ? `<span>${o.paid ? '입금 확인됨' : '입금 확인 전'}</span>` : ''}
-        ${o.payment === 'credit' ? `<span>${o.paid ? '외상 갚음' : '외상 (아직 안 냄)'}</span>` : ''}
-        <strong>${won(o.total)}</strong>
+    <article class="order-card ticket-card st-${esc(o.status)}">
+      <div class="stub">
+        <span class="stub-num">${esc(o.number)}</span>
+        ${badge(o.status)}
       </div>
-      ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
-      ${['transfer', 'credit'].includes(o.payment) && !o.paid && o.status !== 'cancelled' && SHOP.bankInfo
-        ? `<p class="bank">보낼 계좌: <strong>${esc(SHOP.bankInfo)}</strong> · ${won(o.total)}<br>입금자명은 학년 반 이름으로 해 주세요.</p>` : ''}
-      ${o.status === 'ready' ? `<p class="ready-msg">${o.pickup === false ? '곧 배달 가요.' : '나왔어요! 부스에 와서 <b>#' + esc(o.number) + '</b>번이라고 말해 주세요.'}</p>` : ''}
-      <div class="row-actions">
-        ${o.status === 'pending' ? `<button class="btn ghost small" data-cancel="${esc(o.id)}">주문 취소</button>` : ''}
-        ${['done', 'cancelled'].includes(o.status) ? `<button class="btn small" data-again="${esc(o.id)}">다시 주문</button>` : ''}
+      <div class="ticket-main">
+        <header><span class="pay-tag">${esc(PAYMENT[o.payment] || o.payment)}</span><span class="time">${timeText(o.createdAt)}</span></header>
+        ${steps}
+        <ul class="items">${(o.items || []).map(i => `<li><span>${esc(i.name)}</span><span>${esc(i.qty)}개</span></li>`).join('')}</ul>
+        <div class="meta">
+          <span>${o.pickup ? '부스 픽업' : esc(o.location)}</span>
+          ${o.payment === 'transfer' ? `<span>${o.paid ? '입금 확인됨' : '입금 확인 전'}</span>` : ''}
+          ${o.payment === 'credit' ? `<span>${o.paid ? '외상 갚음' : '외상 안 냄'}</span>` : ''}
+          <strong>${won(o.total)}</strong>
+        </div>
+        ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
+        ${['transfer', 'credit'].includes(o.payment) && !o.paid && o.status !== 'cancelled' && SHOP.bankInfo
+          ? `<p class="bank">보낼 계좌 <strong>${esc(SHOP.bankInfo)}</strong><br>${won(o.total)}, 입금자명은 학년 반 이름으로 해 주세요.</p>` : ''}
+        ${o.status === 'ready' ? `<p class="ready-msg">${o.pickup === false ? '곧 배달 가요.' : `나왔어요. 부스에서 <b>${esc(o.number)}번</b>이라고 말해 주세요.`}</p>` : ''}
+        <div class="row-actions">
+          ${o.status === 'pending' ? `<button class="btn ghost small" data-cancel="${esc(o.id)}">주문 취소</button>` : ''}
+          ${['done', 'cancelled'].includes(o.status) ? `<button class="btn small" data-again="${esc(o.id)}">다시 주문</button>` : ''}
+        </div>
       </div>
     </article>`;
   }).join('');

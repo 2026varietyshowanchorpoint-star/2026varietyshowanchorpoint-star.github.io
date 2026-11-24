@@ -42,7 +42,7 @@ store.onAuth(u => {
 
   $('#gate').classList.add('hidden');
   $('#app').classList.remove('hidden');
-  $('#who').textContent = `${u.email} · 개발자 (모든 권한)`;
+  $('#who').innerHTML = `<span class="role-tag dev">개발자</span>${esc(u.email)}`;
   $('#devList').innerHTML = DEVELOPER_EMAILS.map(e => `<li>${esc(e)}</li>`).join('');
   $('#demoCard').classList.toggle('hidden', !DEMO);
 

@@ -98,30 +98,36 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
   function card(o) {
     const change = o.payment === 'cash' && o.cashGiven > o.total ? o.cashGiven - o.total : 0;
     return `
-    <article class="order-card admin-card st-${esc(o.status)} ${st.fresh.has(o.id) ? 'fresh' : ''}" data-id="${esc(o.id)}">
-      <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}${ageTag(o)}<span class="time">${timeText(o.createdAt)}</span></header>
-      <div class="who"><strong>${esc(o.student)}</strong> · ${o.pickup ? '<span class="badge badge-purple">픽업</span>' : esc(o.location)}</div>
-      <ul class="items">${(o.items || []).map(i => `<li><b>${esc(i.qty)}</b> ${esc(i.name)}</li>`).join('')}</ul>
-      ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
-      <div class="meta">
-        <strong>${won(o.total)}</strong>
-        <span>${esc(PAYMENT[o.payment] || o.payment)}</span>
-        ${change ? `<span class="warn-text">거스름돈 ${won(change)} (${won(o.cashGiven)} 냄)</span>` : ''}
+    <article class="order-card ticket-card admin-card st-${esc(o.status)} ${st.fresh.has(o.id) ? 'fresh' : ''}" data-id="${esc(o.id)}">
+      <div class="stub">
+        <span class="stub-num">${esc(o.number)}</span>
+        ${ageTag(o)}
       </div>
-      <div class="actions">
-        ${(NEXT[o.status] || []).filter(([s]) => o.source === 'walkup' ? true : !(o.pickup && s === 'delivering') && !(o.pickup === false && s === 'ready')).map(([s, label]) => `<button class="btn primary small" data-set="${s}">${label}</button>`).join('')}
-        ${o.payment === 'transfer' && o.status !== 'cancelled'
-          ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '입금 확인됨' : '입금 확인'}</button>` : ''}
-        ${o.payment === 'credit' && o.status !== 'cancelled'
-          ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '외상 받음' : '외상 받기'}</button>` : ''}
-        ${!['done', 'cancelled'].includes(o.status) ? '<button class="btn ghost small" data-set="cancelled">취소</button>' : ''}
-        ${dev ? `<select class="small-select" data-force aria-label="상태 강제 변경">
-            <option value="">상태 강제 변경</option>
-            ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
-          </select>
-          <button class="btn ghost small danger" data-del>삭제</button>` : ''}
+      <div class="ticket-main">
+        <header>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}${o.pickup ? '<span class="badge badge-purple">픽업</span>' : ''}<span class="time">${timeText(o.createdAt)}</span></header>
+        <div class="who"><strong>${esc(o.student)}</strong>${o.pickup ? '' : `<span class="where">${esc(o.location)}</span>`}</div>
+        <ul class="items">${(o.items || []).map(i => `<li><span>${esc(i.name)}</span><b>${esc(i.qty)}</b></li>`).join('')}</ul>
+        ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
+        <div class="meta">
+          <span>${esc(PAYMENT[o.payment] || o.payment)}</span>
+          ${change ? `<span class="warn-text">거스름돈 ${won(change)} (${won(o.cashGiven)} 냄)</span>` : ''}
+          <strong>${won(o.total)}</strong>
+        </div>
+        <div class="actions">
+          ${(NEXT[o.status] || []).filter(([s]) => o.source === 'walkup' ? true : !(o.pickup && s === 'delivering') && !(o.pickup === false && s === 'ready')).map(([s, label]) => `<button class="btn primary small" data-set="${s}">${label}</button>`).join('')}
+          ${o.payment === 'transfer' && o.status !== 'cancelled'
+            ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '입금 확인됨' : '입금 확인'}</button>` : ''}
+          ${o.payment === 'credit' && o.status !== 'cancelled'
+            ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '외상 받음' : '외상 받기'}</button>` : ''}
+          ${!['done', 'cancelled'].includes(o.status) ? '<button class="btn ghost small" data-set="cancelled">취소</button>' : ''}
+          ${dev ? `<select class="small-select" data-force aria-label="상태 강제 변경">
+              <option value="">상태 강제 변경</option>
+              ${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}
+            </select>
+            <button class="btn ghost small danger" data-del>삭제</button>` : ''}
+        </div>
+        ${o.email ? `<div class="sub">${esc(o.email)}</div>` : ''}
       </div>
-      <div class="sub">${esc(o.email || '')}</div>
     </article>`;
   }
 
