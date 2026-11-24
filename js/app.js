@@ -1,6 +1,6 @@
 // 소비자용 화면
 import { SHOP } from './config.js';
-import { store, DEMO, setPage, validEmail } from './store.js';
+import { store, DEMO, setPage, validEmail, inAppBrowser } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
   openModal, closeModal, registerSW, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
@@ -42,6 +42,8 @@ function showTab(name) {
 
 function renderBanners() {
   const out = [];
+  const inApp = inAppBrowser();
+  if (inApp && !state.user) out.push(`<div class="banner warn">${inApp} 안에서 열었어요. 구글 로그인은 여기서 안 되니, 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 크롬이나 사파리로 열어 주세요. 이메일 로그인은 여기서도 돼요.</div>`);
   if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. 펀드 화면(fund.html)을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
   if (!isOpen()) out.push(`<div class="banner danger">지금은 주문을 받지 않아요.</div>`);
   if (state.settings.notice) out.push(`<div class="banner">${esc(state.settings.notice)}</div>`);

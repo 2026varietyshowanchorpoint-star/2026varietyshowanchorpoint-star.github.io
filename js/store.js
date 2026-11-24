@@ -19,6 +19,19 @@ export function setPage(name) { pageName = name; }
    로그인 방법(구글/이메일)을 기억해 두었다가, 로그인 상태가 바뀌는 시점에 한 번만 기록한다.
    이미 로그인된 채로 다시 들어온 경우는 탭(세션)마다 한 번 '재방문'으로 기록한다. */
 let pending = null; // { type: 'login' | 'signup', method: 'google' | 'email' }
+
+// 카카오톡·인스타그램·네이버 같은 앱 안 브라우저. 구글이 여기서는 로그인을 막는다.
+export function inAppBrowser() {
+  const ua = navigator.userAgent || '';
+  if (/KAKAOTALK/i.test(ua)) return '카카오톡';
+  if (/Instagram/i.test(ua)) return '인스타그램';
+  if (/NAVER\(inapp/i.test(ua)) return '네이버';
+  if (/FBAN|FBAV/i.test(ua)) return '페이스북';
+  if (/Line\//i.test(ua)) return '라인';
+  if (/everytimeApp/i.test(ua)) return '에브리타임';
+  return '';
+}
+const REDIRECT_KEY = 'fo-google-redirect';
 const LOGGED_KEY = uid => 'fo-logged-' + uid;
 function wasLogged(uid) { try { return sessionStorage.getItem(LOGGED_KEY(uid)) === '1'; } catch (e) { return false; } }
 function markLogged(uid, on = true) {
@@ -217,6 +230,15 @@ async function makeFirebaseStore() {
   ]);
   const app = initializeApp(firebaseConfig);
   const auth = A.getAuth(app);
+  auth.languageCode = 'ko'; // 인증·재설정 메일을 한국어로
+  // 팝업이 막혀서 페이지 전체로 구글 로그인을 다녀온 경우
+  try {
+    if (sessionStorage.getItem(REDIRECT_KEY)) {
+      sessionStorage.removeItem(REDIRECT_KEY);
+      pending = { type: 'login', method: 'google' };
+      A.getRedirectResult(auth).catch(e => { pending = null; console.error('구글 로그인 실패', e); });
+    }
+  } catch (e) { /* 무시 */ }
   const fs = F.getFirestore(app);
 
   const ts = v => (v && typeof v.toMillis === 'function' ? v.toMillis() : v || 0);
@@ -262,9 +284,24 @@ async function makeFirebaseStore() {
     get user() { return current; },
     async signInGoogle() {
       pending = { type: 'login', method: 'google' };
+      const inApp = inAppBrowser();
+      if (inApp) {
+        pending = null;
+        const err = new Error(`${inApp} 안에서는 구글 로그인이 안 돼요. 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 크롬이나 사파리에서 열어 주세요.`);
+        err.code = 'app/in-app-browser';
+        throw err;
+      }
       const p = new A.GoogleAuthProvider();
       p.setCustomParameters({ prompt: 'select_account' });
-      try { return (await A.signInWithPopup(auth, p)).user; } catch (e) { pending = null; throw e; }
+      try { return (await A.signInWithPopup(auth, p)).user; } catch (e) {
+        // 팝업이 막히면 페이지 전체로 구글 로그인 화면에 다녀온다
+        if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
+          try { sessionStorage.setItem(REDIRECT_KEY, '1'); } catch (x) { /* 무시 */ }
+          await A.signInWithRedirect(auth, p);
+          return null;
+        }
+        pending = null; throw e;
+      }
     },
     async signInEmail(email, pw) {
       if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');

@@ -15,18 +15,15 @@ export const SHOP = {
 
 // 개발자 이메일. 여기 적힌 구글 계정은 역할과 상관없이 모든 권한을 갖는다.
 // firestore.rules 맨 위의 developerEmails() 목록도 똑같이 맞춰야 한다.
-export const DEVELOPER_EMAILS = ['YOUR_EMAIL@gmail.com'];
+export const DEVELOPER_EMAILS = ['2026varietyshowanchorpoint@gmail.com'];
 
-// Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값을 넣는다.
-// null로 두면 데모 모드(이 브라우저 안에만 저장)로 돈다.
-export const firebaseConfig = null;
-/*
+// Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값. 비밀값이 아니라서 공개돼도 괜찮다.
+// (막는 건 firestore.rules가 한다.) null로 바꾸면 데모 모드(이 브라우저 안에만 저장)로 돈다.
 export const firebaseConfig = {
-  apiKey: '...',
-  authDomain: '...firebaseapp.com',
-  projectId: '...',
-  storageBucket: '...',
-  messagingSenderId: '...',
-  appId: '...',
+  apiKey: 'AIzaSyArdh2jQDWeIYQFdjyK3ZB8RKiyzN93JdM',
+  authDomain: 'variety-fund-2026.firebaseapp.com',
+  projectId: 'variety-fund-2026',
+  storageBucket: 'variety-fund-2026.firebasestorage.app',
+  messagingSenderId: '358110200216',
+  appId: '1:358110200216:web:262b87ba2647512725abed',
 };
-*/

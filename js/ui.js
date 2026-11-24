@@ -70,6 +70,15 @@ export function errText(e) {
     'auth/weak-password': '비밀번호는 6자 이상이어야 해요.',
     'auth/invalid-email': '이메일 형식이 맞지 않아요.',
     'auth/popup-closed-by-user': '로그인 창이 닫혔어요.',
+    'auth/cancelled-popup-request': '로그인 창이 닫혔어요.',
+    'auth/popup-blocked': '로그인 창이 막혔어요. 팝업을 허용하고 다시 눌러 주세요.',
+    'auth/unauthorized-domain': '이 주소에서는 로그인이 아직 허용되지 않았어요. 담당자에게 알려 주세요.',
+    'auth/network-request-failed': '인터넷 연결을 확인해 주세요.',
+    'auth/too-many-requests': '시도가 너무 많아요. 잠시 뒤에 다시 해 주세요.',
+    'auth/operation-not-allowed': '이 로그인 방법은 아직 꺼져 있어요. 담당자에게 알려 주세요.',
+    'auth/missing-password': '비밀번호를 입력해 주세요.',
+    'auth/user-disabled': '사용이 막힌 계정이에요. 담당자에게 문의해 주세요.',
+    'unavailable': '서버에 연결하지 못했어요. 잠시 뒤에 다시 해 주세요.',
     'permission-denied': '권한이 없어요.',
   };
   return map[code] || (e && e.message) || String(e);
