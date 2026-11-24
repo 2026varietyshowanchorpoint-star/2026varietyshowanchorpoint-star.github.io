@@ -24,6 +24,8 @@
 4. 펀드 탭에서 상태를 바꾸면 주문 탭에 알림이 뜬다.
 5. `dev.html`에서 "데모 개발자로 들어가기"를 누르면 지금까지의 로그인 기록이 보인다.
 
+Firebase API 키는 Google Cloud 콘솔에서 `https://2026varietyshowanchorpoint-star.github.io/*`와 `https://variety-fund-2026.firebaseapp.com/*`에서만 쓰이도록 잠가 두었다. 그래서 다른 주소나 내 컴퓨터(localhost)에서는 실제 모드 로그인이 안 되고, 컴퓨터에서 시험할 때는 `firebaseConfig`를 잠깐 `null`로 바꿔 데모 모드로 돌린다. 사이트 주소를 바꾸면 Firebase 승인된 도메인과 이 키 제한 둘 다에 새 주소를 넣어야 한다.
+
 컴퓨터에서 직접 열 때는 `index.html`을 더블클릭하면 안 되고(모듈이 막힌다) 폴더에서 `python -m http.server`를 실행한 뒤 `http://localhost:8000`으로 연다.
 
 ## 실제로 쓰기 (Firebase 연결)
