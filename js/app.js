@@ -285,7 +285,7 @@ function openCheckout() {
       <div id="bankBox" class="bank hidden">${SHOP.bankInfo
         ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong><br>입금자명은 학년 반 이름으로 해 주세요.`
         : '계좌 정보는 담당자가 곧 안내할게요.'}</div>
-      <div id="creditBox" class="bank hidden">지금은 안 내도 돼요. 나중에 펀드 담당자에게 내면 됩니다.</div>
+      <div id="creditBox" class="bank hidden">지금은 안 내도 돼요. 나중에 펀드 담당자에게 현금으로 주거나${SHOP.bankInfo ? ` <strong>${esc(SHOP.bankInfo)}</strong>로 보내 주세요.` : ' 계좌로 보내면 됩니다.'}</div>
       <label id="changeBox" class="hidden">거스름돈이 필요하면 낼 금액을 적어 주세요<input name="cashGiven" type="number" min="0" step="100" placeholder="예: 10000"></label>
       <label>요청 사항<textarea name="note" rows="2" maxlength="300" placeholder="예: 붕어빵 팥 1개, 슈크림 2개로 나눠 주세요"></textarea></label>
       <button class="btn primary wide" type="submit" id="placeBtn">${won(cartTotal())} 주문하기</button>
@@ -341,7 +341,7 @@ function showDone(number, order) {
       <div class="done-num">#${number}</div>
       <p>${won(order.total)} · ${esc(PAYMENT[order.payment])}</p>
       ${order.payment === 'transfer' ? `<p class="bank">${SHOP.bankInfo ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong>` : '계좌 정보는 담당자가 곧 안내할게요.'}</p>` : ''}
-      ${order.payment === 'credit' ? '<p class="bank">외상으로 주문했어요. 나중에 펀드 담당자에게 내 주세요.</p>' : ''}
+      ${order.payment === 'credit' ? `<p class="bank">외상으로 주문했어요. 나중에 펀드 담당자에게 내거나${SHOP.bankInfo ? ` <strong>${esc(SHOP.bankInfo)}</strong>로 보내 주세요.` : ' 계좌로 보내 주세요.'}</p>` : ''}
       <p class="muted">음식이 나오면 알려 드릴게요. 알림을 허용해 주세요.</p>
     </div>
     <button class="btn primary wide" id="okBtn">내 주문 보기</button>`);

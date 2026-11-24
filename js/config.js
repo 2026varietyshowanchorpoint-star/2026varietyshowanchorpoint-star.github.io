@@ -3,7 +3,7 @@ export const SHOP = {
   title: '벌티 펀드',
   subtitle: '2026 버라이어티 쇼 펀드 주문',
   // 계좌이체 안내 문구. 비워 두면 계좌이체 선택지가 사라진다.
-  bankInfo: '',            // 예: '케이뱅크 000-000-000000 홍길동'
+  bankInfo: '우리은행 1002-347-866591 김강현',
   contact: '',             // 예: '문의: fund@example.com'
   instagram: '',           // 예: 'https://www.instagram.com/...'
   studentHint: '김강현 11B',
@@ -15,7 +15,7 @@ export const SHOP = {
 
 // 개발자 이메일. 여기 적힌 구글 계정은 역할과 상관없이 모든 권한을 갖는다.
 // firestore.rules 맨 위의 developerEmails() 목록도 똑같이 맞춰야 한다.
-export const DEVELOPER_EMAILS = ['2026varietyshowanchorpoint@gmail.com'];
+export const DEVELOPER_EMAILS = ['kanghyeon0229@gmail.com'];
 
 // Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값. 비밀값이 아니라서 공개돼도 괜찮다.
 // (막는 건 firestore.rules가 한다.) null로 바꾸면 데모 모드(이 브라우저 안에만 저장)로 돈다.
