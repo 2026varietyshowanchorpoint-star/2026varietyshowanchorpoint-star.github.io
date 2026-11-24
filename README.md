@@ -10,7 +10,7 @@
 | 펀드 | `fund.html` | 펀드 담당자 (role이 `fund`인 계정) |
 | 개발자 | `dev.html` | `DEVELOPER_EMAILS`에 등록된 계정만 |
 
-데모 주소: https://kanghyeon0220.github.io/fund-demo/ (펀드는 `fund.html`, 개발자는 `dev.html`을 뒤에 붙인다)
+사이트 주소: https://2026varietyshowanchorpoint-star.github.io/ (펀드는 `fund.html`, 개발자는 `dev.html`을 뒤에 붙인다). Firebase 프로젝트 `variety-fund-2026`에 연결돼 있어서 진짜 로그인과 주문이 된다. GitHub Pages는 `main` 브랜치에서 나가서, `main`에 올리면 1~2분 뒤 사이트에 반영된다.
 
 빌드 과정이 없는 HTML/JS라서 파일을 그대로 올리면 된다. 휴대폰에서 학생 화면을 열고 "홈 화면에 추가"를 누르면 앱처럼 쓸 수 있다.
 
@@ -18,7 +18,7 @@
 
 `js/config.js`의 `firebaseConfig`가 `null`이면 데모 모드로 돈다. 주문과 메뉴가 그 브라우저 안에만 저장된다.
 
-1. https://kanghyeon0220.github.io/fund-demo/ 를 연다. GitHub Pages는 `gh-pages` 브랜치에서 나간다. 코드를 고치면 `main`과 `gh-pages` 둘 다에 올려야 사이트에 반영된다 (`git push origin main main:gh-pages`).
+1. 컴퓨터에서 폴더를 띄우고(아래 참고) `index.html`을 연다.
 2. 메뉴를 고르고 주문한다.
 3. 같은 브라우저 다른 탭에서 `fund.html`을 열고 "데모 펀드 담당자로 들어가기"를 누른다. 방금 한 주문이 보인다.
 4. 펀드 탭에서 상태를 바꾸면 주문 탭에 알림이 뜬다.
