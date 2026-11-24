@@ -20,7 +20,15 @@ service cloud.firestore {
     function myRole() {
       return signedIn() && exists(userPath()) ? get(userPath()).data.get('role', '') : '';
     }
-    function isFund() { return isDev() || myRole() == 'fund'; }
+    // 개발자가 미리 등록해 둔 펀드 담당자 이메일 (meta/staff.emails)
+    function staffPath() { return /databases/$(db)/documents/meta/staff; }
+    function isStaffEmail() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(staffPath())
+        && request.auth.token.email.lower() in get(staffPath()).data.get('emails', []);
+    }
+    function isFund() { return isDev() || myRole() == 'fund' || isStaffEmail(); }
     function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
 
     // 사용자 정보: 본인과 개발자만 읽는다. role 은 개발자만 바꿀 수 있다.
@@ -52,6 +60,12 @@ service cloud.firestore {
     match /meta/settings {
       allow read: if true;
       allow write: if isFund();
+    }
+
+    // 펀드 담당자 이메일 목록: 로그인한 사람은 읽기(자기가 담당자인지 확인), 개발자만 고친다
+    match /meta/staff {
+      allow read: if signedIn();
+      allow write: if isDev();
     }
 
     // 주문 번호 카운터: 1씩만 올릴 수 있다 (개발자는 자유롭게)

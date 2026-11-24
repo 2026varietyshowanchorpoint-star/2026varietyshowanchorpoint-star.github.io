@@ -1,7 +1,7 @@
 // 개발자 화면: 로그인 기록, 사용자 권한, 그리고 펀드 화면의 모든 기능 + 강제 권한
 // 들어올 수 있는 사람: config.js의 DEVELOPER_EMAILS에 있는 계정만
 import { DEVELOPER_EMAILS } from './config.js';
-import { store, DEMO, setPage, isDeveloper } from './store.js';
+import { store, DEMO, setPage, isDeveloper, validEmail } from './store.js';
 import { $, esc, timeText, toast, errText } from './ui.js';
 import {
   loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, mountWalkup, renderStats, tabs, downloadCsv, download, today,
@@ -14,7 +14,7 @@ const METHOD = { google: '구글', email: '이메일', demo: '데모' };
 const PAGE = { order: '학생 주문', fund: '펀드', dev: '개발자' };
 const ROLE = { '': '일반', fund: '펀드 담당' };
 
-const st = { logs: [], users: [], ordersPanel: null };
+const st = { logs: [], users: [], staff: [], ordersPanel: null };
 let mounted = [];
 
 if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 기록은 이 브라우저 안에만 남아요.</div>`;
@@ -58,6 +58,7 @@ store.onAuth(u => {
     mountSettings($('#tab-settings')),
     { unsub: store.watchLoginLogs(l => { st.logs = l; renderLogs(); }, e => toast('기록을 불러오지 못했어요: ' + errText(e), 'error')) },
     { unsub: store.watchUsers(l => { st.users = l; renderUsers(); }) },
+    { unsub: store.watchStaff(l => { st.staff = l; renderStaff(); renderUsers(); }) },
   );
 });
 
@@ -122,7 +123,7 @@ function renderUsers() {
     <tr data-uid="${esc(u.uid)}">
       <td>${esc(u.email || '(없음)')}</td>
       <td>${esc([u.name, u.student].filter(Boolean).join(' / '))}</td>
-      <td>${dev ? '<span class="badge badge-purple">개발자 (고정)</span>' : `
+      <td>${dev ? '<span class="badge badge-purple">개발자 (고정)</span>' : st.staff.includes((u.email || '').toLowerCase()) ? '<span class="badge badge-green">펀드 (이메일 등록)</span>' : `
         <select data-role>
           ${Object.entries(ROLE).map(([k, v]) => `<option value="${k}" ${(u.role || '') === k ? 'selected' : ''}>${v}</option>`).join('')}
         </select>`}</td>
@@ -156,6 +157,27 @@ $('#userRows').addEventListener('click', async e => {
   $('#logSearch').value = b.dataset.logs;
   $('.tab[data-tab=logs]').click();
   renderLogs();
+});
+
+/* ---------- 펀드 담당자 이메일 ---------- */
+
+function renderStaff() {
+  $('#staffList').innerHTML = st.staff.length
+    ? st.staff.map(e => `<li><span>${esc(e)}</span><button class="btn ghost small danger" data-unstaff="${esc(e)}">빼기</button></li>`).join('')
+    : '<li class="muted">아직 등록된 담당자가 없어요.</li>';
+}
+$('#staffForm').onsubmit = async ev => {
+  ev.preventDefault();
+  const email = $('#staffEmail').value.trim().toLowerCase();
+  if (!validEmail(email)) return toast('이메일 형식이 맞지 않아요.', 'error');
+  if (st.staff.includes(email)) return toast('이미 등록된 이메일이에요.');
+  try { await store.setStaff([...st.staff, email]); $('#staffEmail').value = ''; toast('펀드 담당자로 등록했어요.', 'good'); }
+  catch (e) { toast(errText(e), 'error'); }
+};
+$('#staffList').addEventListener('click', async e => {
+  const email = e.target.closest('[data-unstaff]')?.dataset.unstaff;
+  if (!email || !confirm(`${email} 의 펀드 권한을 뺄까요?`)) return;
+  try { await store.setStaff(st.staff.filter(x => x !== email)); toast('뺐어요.'); } catch (err) { toast(errText(err), 'error'); }
 });
 
 /* ---------- 시스템 ---------- */

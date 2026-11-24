@@ -8,7 +8,7 @@
   <title>개발자</title>
   <link rel="icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body class="admin dev-page">
   <header class="topbar">
@@ -64,6 +64,15 @@
       </section>
 
       <section id="tab-users" class="hidden">
+        <div class="card">
+          <h3>펀드 담당자 이메일</h3>
+          <p class="muted">여기 적은 이메일로 로그인하면 바로 펀드 화면(fund.html)에 들어가요. 그 사람이 아직 로그인한 적 없어도 미리 넣어 둘 수 있어요. 구글 로그인이나 메일 인증을 마친 계정만 인정돼요.</p>
+          <form id="staffForm" class="staff-form">
+            <input type="email" id="staffEmail" placeholder="예: fundstaff@gmail.com" required>
+            <button class="btn primary" type="submit">추가</button>
+          </form>
+          <ul id="staffList" class="staff-list"></ul>
+        </div>
         <input type="search" id="userSearch" placeholder="이메일, 이름 검색">
         <div class="table-wrap"><table class="table">
           <thead><tr><th>이메일</th><th>이름 / 학년반</th><th>권한</th><th>인증</th><th>마지막 로그인</th><th>로그인 횟수</th><th></th></tr></thead>

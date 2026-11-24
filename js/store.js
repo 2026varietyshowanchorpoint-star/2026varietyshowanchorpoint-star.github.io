@@ -179,6 +179,10 @@ function makeDemoStore() {
     async getRole(uid) { return (db.users[uid] && db.users[uid].role) || ''; },
     watchUsers(cb) { return watch(() => Object.values(db.users).sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)), cb); },
     async setRole(uid, role) { if (role) db.users[uid].role = role; else delete db.users[uid].role; save(); },
+    // 펀드 담당자 이메일 목록 (로그인하기 전에 미리 등록)
+    watchStaff(cb) { return watch(() => (db.staff || []).slice(), cb); },
+    async getStaff() { return (db.staff || []).slice(); },
+    async setStaff(list) { db.staff = list; save(); },
 
     watchLoginLogs(cb) { return watch(() => db.logs.slice(), cb); },
     async clearLoginLogs() { db.logs = []; save(); },
@@ -348,6 +352,14 @@ async function makeFirebaseStore() {
     },
     watchUsers(cb) { return listOf(F.query(F.collection(fs, 'users'), F.limit(1000)), l => cb(l.sort((a, b) => (b.lastLoginAt || 0) - (a.lastLoginAt || 0)))); },
     async setRole(uid, role) { await F.updateDoc(F.doc(fs, 'users', uid), { role: role ? role : F.deleteField() }); },
+    watchStaff(cb) {
+      return F.onSnapshot(F.doc(fs, 'meta', 'staff'), s => cb((s.exists() && s.data().emails) || []), e => { console.error(e); cb([]); });
+    },
+    async getStaff() {
+      const s = await F.getDoc(F.doc(fs, 'meta', 'staff'));
+      return (s.exists() && s.data().emails) || [];
+    },
+    async setStaff(list) { await F.setDoc(F.doc(fs, 'meta', 'staff'), { emails: list }); },
 
     watchLoginLogs(cb, onErr) {
       return listOf(F.query(F.collection(fs, 'login_logs'), F.orderBy('createdAt', 'desc'), F.limit(2000)), cb, onErr);

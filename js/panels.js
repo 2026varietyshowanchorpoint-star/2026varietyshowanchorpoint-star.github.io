@@ -51,7 +51,7 @@ const FILTERS = [
   ['making', '만드는 중', o => o.status === 'making'],
   ['delivering', '배달 중', o => o.status === 'delivering'],
   ['ready', '픽업 대기', o => o.status === 'ready'],
-  ['unpaid', '입금 확인 전', o => o.payment === 'transfer' && !o.paid && o.status !== 'cancelled'],
+  ['unpaid', '받을 돈', o => ['transfer', 'credit'].includes(o.payment) && !o.paid && o.status !== 'cancelled'],
   ['done', '완료', o => o.status === 'done'],
   ['cancelled', '취소', o => o.status === 'cancelled'],
   ['all', '전체', () => true],
@@ -67,6 +67,7 @@ const NEXT = {
 // dev: true면 아무 상태로나 바꾸기, 주문 삭제가 추가된다
 export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
   root.innerHTML = `
+    <div class="open-bar" data-r="open"></div>
     <div class="toolbar">
       <div class="chips" data-r="filters"></div>
       <input type="search" data-r="search" placeholder="번호, 이름, 위치, 이메일 검색">
@@ -80,7 +81,7 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     return `
     <article class="order-card admin-card st-${esc(o.status)} ${st.fresh.has(o.id) ? 'fresh' : ''}" data-id="${esc(o.id)}">
       <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}<span class="time">${timeText(o.createdAt)}</span></header>
-      <div class="who"><strong>${esc(o.student)}</strong> · ${esc(o.location)}</div>
+      <div class="who"><strong>${esc(o.student)}</strong> · ${o.pickup ? '<span class="badge badge-purple">픽업</span>' : esc(o.location)}</div>
       <ul class="items">${(o.items || []).map(i => `<li><b>${esc(i.qty)}</b> ${esc(i.name)}</li>`).join('')}</ul>
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
       <div class="meta">
@@ -89,9 +90,11 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
         ${change ? `<span class="warn-text">거스름돈 ${won(change)} (${won(o.cashGiven)} 냄)</span>` : ''}
       </div>
       <div class="actions">
-        ${(NEXT[o.status] || []).map(([s, label]) => `<button class="btn primary small" data-set="${s}">${label}</button>`).join('')}
+        ${(NEXT[o.status] || []).filter(([s]) => o.source === 'walkup' ? true : !(o.pickup && s === 'delivering') && !(o.pickup === false && s === 'ready')).map(([s, label]) => `<button class="btn primary small" data-set="${s}">${label}</button>`).join('')}
         ${o.payment === 'transfer' && o.status !== 'cancelled'
           ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '입금 확인됨' : '입금 확인'}</button>` : ''}
+        ${o.payment === 'credit' && o.status !== 'cancelled'
+          ? `<button class="btn small ${o.paid ? 'good' : ''}" data-paid="${o.paid ? 0 : 1}">${o.paid ? '외상 받음' : '외상 받기'}</button>` : ''}
         ${!['done', 'cancelled'].includes(o.status) ? '<button class="btn ghost small" data-set="cancelled">취소</button>' : ''}
         ${dev ? `<select class="small-select" data-force aria-label="상태 강제 변경">
             <option value="">상태 강제 변경</option>
@@ -149,7 +152,21 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     } catch (err) { toast(errText(err), 'error'); btn.disabled = false; }
   });
 
-  const unsub = store.watchAllOrders(list => {
+  // 주문 받기 스위치: 주문판 맨 위에서 바로 켜고 끈다
+  let open = true;
+  const renderOpen = () => {
+    R('open').className = 'open-bar ' + (open ? 'on' : 'off');
+    R('open').innerHTML = `<span>${open ? '학생 주문을 받는 중이에요' : '학생 주문이 막혀 있어요'}</span>
+      <button class="btn small" data-toggle-open>${open ? '주문 마감하기' : '주문 다시 받기'}</button>`;
+  };
+  const unsubSettings = store.watchSettings(s => { open = (s && s.open) ?? SHOP.defaultOpen; open = open !== false; renderOpen(); });
+  R('open').addEventListener('click', async e => {
+    if (!e.target.closest('[data-toggle-open]')) return;
+    if (open && !confirm('학생 주문을 마감할까요? 현장 주문 기록은 계속 할 수 있어요.')) return;
+    try { await store.updateSettings({ open: !open }); toast(open ? '주문을 마감했어요.' : '주문을 다시 받아요.'); } catch (err) { toast(errText(err), 'error'); }
+  });
+
+  const unsubOrders = store.watchAllOrders(list => {
     if (st.seen) {
       const added = list.filter(o => !st.seen.has(o.id));
       if (added.length) {
@@ -164,6 +181,7 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     if (onOrders) onOrders(list);
   }, e => toast('주문을 불러오지 못했어요: ' + errText(e), 'error'));
 
+  const unsub = () => { unsubOrders(); unsubSettings && unsubSettings(); };
   return { unsub, clearFresh() { st.fresh.clear(); render(); }, get orders() { return st.orders; } };
 }
 
@@ -268,7 +286,7 @@ export function renderStats(root, orders) {
       <div class="stat"><span>총 매출</span><strong>${won(sum(valid))}</strong></div>
       <div class="stat"><span>현금</span><strong>${won(sum(valid.filter(o => o.payment === 'cash')))}</strong></div>
       <div class="stat"><span>계좌이체</span><strong>${won(sum(transfer))}</strong></div>
-      <div class="stat warn"><span>외상 받을 돈</span><strong>${won(sum(valid.filter(o => o.payment === 'credit')))} (${valid.filter(o => o.payment === 'credit').length}건)</strong></div>
+      <div class="stat warn"><span>외상 받을 돈</span><strong>${won(sum(valid.filter(o => o.payment === 'credit' && !o.paid)))} (${valid.filter(o => o.payment === 'credit' && !o.paid).length}건)</strong></div>
       <div class="stat warn"><span>입금 확인 전</span><strong>${won(sum(unpaid))} (${unpaid.length}건)</strong></div>
       <div class="stat"><span>취소</span><strong>${orders.length - valid.length}건</strong></div>
     </div>
@@ -282,7 +300,7 @@ export function renderStats(root, orders) {
     [...orders].reverse().map(o => [
       o.number, new Date(o.createdAt).toLocaleString('ko-KR'), STATUS[o.status]?.label || o.status, o.student, o.location,
       (o.items || []).map(i => `${i.name} x${i.qty}`).join(', '), o.total, PAYMENT[o.payment] || o.payment,
-      o.payment === 'transfer' ? (o.paid ? 'O' : 'X') : '', o.cashGiven || '', o.note, o.email,
+      ['transfer', 'credit'].includes(o.payment) ? (o.paid ? 'O' : 'X') : '', o.cashGiven || '', o.note, o.email,
     ]));
 }
 
@@ -510,7 +528,7 @@ export function mountAccounting(root) {
     const valid = list.filter(o => o.status !== 'cancelled');
     const grand = valid.reduce((s, o) => s + (Number(o.total) || 0), 0);
     // 외상(받을 돈)은 따로도 보여준다
-    const credit = valid.filter(o => o.payment === 'credit').reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const credit = valid.filter(o => o.payment === 'credit' && !o.paid).reduce((s, o) => s + (Number(o.total) || 0), 0);
     let html = `<div class="acc-grand">합계 (취소 제외) <strong>${won(grand)}</strong> · ${valid.length}건${credit ? ` · 외상 받을 돈 <strong class="credit-amt">${won(credit)}</strong>` : ''}</div>`;
     if (st.pay === 'all') {
       // 결제방법으로 정리해서 보여준다

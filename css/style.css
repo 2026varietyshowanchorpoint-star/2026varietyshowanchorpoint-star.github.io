@@ -410,3 +410,14 @@ main { max-width: 980px; margin: 0 auto; padding: 0 14px; }
 body:not(.admin) .topbar .sub { display: none; }
 body { word-break: keep-all; overflow-wrap: anywhere; }
 .topbar { padding-left: max(16px, calc((100% - 952px) / 2)); padding-right: max(16px, calc((100% - 952px) / 2)); }
+.staff-form { display: flex; gap: 8px; margin: 12px 0 8px; }
+.staff-form input { flex: 1; font: inherit; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 10px; }
+.staff-list { list-style: none; padding: 0; margin: 0; }
+.staff-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px; border-top: 1px solid var(--line); }
+.open-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; border-radius: 12px; margin-top: 12px; font-size: 14px; font-weight: 700; }
+.open-bar:empty { display: none; }
+.open-bar.on { background: var(--good-soft); color: #146c3b; }
+.open-bar.off { background: var(--bad-soft); color: #8a1f1f; }
+.open-bar span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: 8px; vertical-align: 1px; }
+.form fieldset.two { grid-template-columns: repeat(2, 1fr); }
+.order-card .bank { margin: 10px 0 0; font-size: 13px; }

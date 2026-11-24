@@ -30,11 +30,17 @@ store.onAuth(async u => {
   const demoButton = DEMO ? { label: '데모 펀드 담당자로 들어가기', onClick: () => store.demoFundLogin() } : null;
   if (!u) return loginGate($('#gate'), { title: '펀드 담당자 로그인', demoButton });
 
-  let role = '';
-  try { role = await store.getRole(u.uid); } catch (e) { console.error(e); }
+  let role = '', staff = [];
+  try { [role, staff] = await Promise.all([store.getRole(u.uid), store.getStaff()]); } catch (e) { console.error(e); }
   const dev = isDeveloper(u);
-  if (role !== 'fund' && !dev) {
-    return deniedGate($('#gate'), u, { message: '개발자에게 아래 사용자 ID를 알려 주고 펀드 역할을 받으세요.', demoButton });
+  const byEmail = !!u.email && u.emailVerified !== false && staff.includes(u.email.toLowerCase());
+  if (role !== 'fund' && !byEmail && !dev) {
+    return deniedGate($('#gate'), u, {
+      message: u.emailVerified === false
+        ? '메일 인증이 안 된 계정이에요. 인증 메일의 링크를 누르거나 구글로 로그인해 주세요.'
+        : `개발자에게 이 이메일(${u.email || '없음'})을 펀드 담당자로 등록해 달라고 하세요. 등록되면 새로고침하면 들어와져요.`,
+      demoButton,
+    });
   }
 
   $('#gate').classList.add('hidden');

@@ -275,7 +275,12 @@ function openCheckout() {
     </ul>
     <form id="of" class="form">
       <label>학년 반 이름 *<input name="student" required value="${esc(p.student || '')}" placeholder="${esc(SHOP.studentHint)}"></label>
-      <label>배달 위치 *<input name="location" required value="${esc(p.location || '')}" placeholder="${esc(SHOP.locationHint)}"></label>
+      <fieldset class="two">
+        <legend>받는 방법 *</legend>
+        <label class="radio"><input type="radio" name="how" value="delivery" checked>배달<span class="pay-hint">교실로 가져다줘요</span></label>
+        <label class="radio"><input type="radio" name="how" value="pickup">픽업<span class="pay-hint">부스에서 받아요</span></label>
+      </fieldset>
+      <label id="locBox">배달 위치 *<input name="location" value="${esc(p.location || '')}" placeholder="${esc(SHOP.locationHint)}"></label>
       <fieldset>
         <legend>결제 방식 *</legend>
         <label class="radio"><input type="radio" name="payment" value="cash" required checked>현금<span class="pay-hint">받을 때 내기</span></label>
@@ -293,12 +298,15 @@ function openCheckout() {
     <button class="btn ghost wide" id="cancelBtn">닫기</button>`);
 
   const sync = () => {
+    const pickup = $('input[name=how]:checked', m)?.value === 'pickup';
+    $('#locBox', m).classList.toggle('hidden', pickup);
+    $('input[name=location]', m).required = !pickup;
     const pay = $('input[name=payment]:checked', m)?.value;
     $('#bankBox', m).classList.toggle('hidden', pay !== 'transfer');
     $('#creditBox', m).classList.toggle('hidden', pay !== 'credit');
     $('#changeBox', m).classList.toggle('hidden', pay !== 'cash');
   };
-  $$('input[name=payment]', m).forEach(r => r.addEventListener('change', sync));
+  $$('input[name=payment], input[name=how]', m).forEach(r => r.addEventListener('change', sync));
   sync();
   $('#cancelBtn', m).onclick = closeModal;
 
@@ -311,7 +319,8 @@ function openCheckout() {
       uid: state.user.uid,
       email: state.user.email || '',
       student: f.get('student').trim(),
-      location: f.get('location').trim(),
+      pickup: f.get('how') === 'pickup',
+      location: f.get('how') === 'pickup' ? '부스 픽업' : f.get('location').trim(),
       payment: f.get('payment'),
       cashGiven: Number(f.get('cashGiven')) || 0,
       note: (f.get('note') || '').trim(),
@@ -321,8 +330,9 @@ function openCheckout() {
     try {
       const res = await store.placeOrder(order);
       // 다음 주문 때 다시 안 적어도 되게 저장
-      store.saveProfile(state.user.uid, { student: order.student, location: order.location }).catch(() => {});
-      state.profile = { ...state.profile, student: order.student, location: order.location };
+      const keep = order.pickup ? { student: order.student } : { student: order.student, location: order.location };
+      store.saveProfile(state.user.uid, keep).catch(() => {});
+      state.profile = { ...state.profile, ...keep };
       state.cart = {}; saveCart(); renderMenu(); renderCart();
       showDone(res.number, order);
     } catch (e) {
@@ -342,7 +352,7 @@ function showDone(number, order) {
       <p>${won(order.total)} · ${esc(PAYMENT[order.payment])}</p>
       ${order.payment === 'transfer' ? `<p class="bank">${SHOP.bankInfo ? `입금 계좌: <strong>${esc(SHOP.bankInfo)}</strong>` : '계좌 정보는 담당자가 곧 안내할게요.'}</p>` : ''}
       ${order.payment === 'credit' ? `<p class="bank">외상으로 주문했어요. 나중에 펀드 담당자에게 내거나${SHOP.bankInfo ? ` <strong>${esc(SHOP.bankInfo)}</strong>로 보내 주세요.` : ' 계좌로 보내 주세요.'}</p>` : ''}
-      <p class="muted">음식이 나오면 알려 드릴게요. 알림을 허용해 주세요.</p>
+      <p class="muted">${order.pickup ? '음식이 나오면 알려 드릴게요. 주문 번호를 부스에 말해 주세요.' : '배달을 출발하면 알려 드릴게요.'} 알림을 허용해 주세요.</p>
     </div>
     <button class="btn primary wide" id="okBtn">내 주문 보기</button>`);
   $('#okBtn', m).onclick = () => { closeModal(); showTab('orders'); };
@@ -387,7 +397,7 @@ function renderOrders() {
     const step = STATUS_FLOW.indexOf(o.status);
     const steps = o.status === 'cancelled' ? '' : `
       <ol class="progress">
-        ${['pending', 'making', o.status === 'ready' ? 'ready' : 'delivering', 'done'].map(s =>
+        ${['pending', 'making', (o.pickup || o.status === 'ready') ? 'ready' : 'delivering', 'done'].map(s =>
           `<li class="${STATUS_FLOW.indexOf(s) <= step ? 'on' : ''}">${STATUS[s].label}</li>`).join('')}
       </ol>`;
     return `
@@ -398,9 +408,12 @@ function renderOrders() {
       <div class="meta">
         <span>${esc(o.location)}</span>
         ${o.payment === 'transfer' ? `<span>${o.paid ? '입금 확인됨' : '입금 확인 전'}</span>` : ''}
+        ${o.payment === 'credit' ? `<span>${o.paid ? '외상 갚음' : '외상 (아직 안 냄)'}</span>` : ''}
         <strong>${won(o.total)}</strong>
       </div>
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
+      ${['transfer', 'credit'].includes(o.payment) && !o.paid && o.status !== 'cancelled' && SHOP.bankInfo
+        ? `<p class="bank">보낼 계좌: <strong>${esc(SHOP.bankInfo)}</strong> · ${won(o.total)}<br>입금자명은 학년 반 이름으로 해 주세요.</p>` : ''}
       ${o.status === 'pending' ? `<button class="btn ghost small" data-cancel="${esc(o.id)}">주문 취소</button>` : ''}
     </article>`;
   }).join('');
