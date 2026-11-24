@@ -188,6 +188,13 @@ $('#backupBtn').onclick = async () => {
     download(`펀드백업_${today()}.json`, new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
   } catch (e) { toast(errText(e), 'error'); }
 };
+$('#resetOrdersBtn').onclick = async () => {
+  const typed = prompt('주문을 전부 지우고 번호를 #1부터 다시 시작해요. 되돌릴 수 없어요.\n계속하려면 "정리"라고 입력하세요.');
+  if (typed === null) return;
+  if (typed.trim() !== '정리') return toast('"정리"라고 입력해야 진행돼요.', 'error');
+  try { const n = await store.resetOrders(); toast(`주문${typeof n === 'number' ? ` ${n}건` : ''}을 지우고 번호를 초기화했어요.`, 'good'); }
+  catch (e) { toast(errText(e), 'error'); }
+};
 $('#resetBtn').onclick = async () => {
   if (!confirm('데모 데이터를 전부 지울까요?')) return;
   await store.resetDemo();

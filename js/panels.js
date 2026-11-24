@@ -68,6 +68,7 @@ const NEXT = {
 export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
   root.innerHTML = `
     <div class="open-bar" data-r="open"></div>
+    <div class="prep" data-r="prep"></div>
     <div class="toolbar">
       <div class="chips" data-r="filters"></div>
       <input type="search" data-r="search" placeholder="번호, 이름, 위치, 이메일 검색">
@@ -76,11 +77,29 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
   const st = { orders: [], filter: 'active', query: '', seen: null, fresh: new Set() };
   const R = n => $(`[data-r=${n}]`, root);
 
+  // 접수됨·만드는 중 주문의 메뉴를 다 더해서 "지금 만들 것"을 보여 준다
+  function renderPrep() {
+    const sum = {};
+    st.orders.filter(o => ['pending', 'making'].includes(o.status))
+      .forEach(o => (o.items || []).forEach(i => { sum[i.name] = (sum[i.name] || 0) + (Number(i.qty) || 0); }));
+    const list = Object.entries(sum).sort((a, b) => b[1] - a[1]);
+    R('prep').innerHTML = list.length
+      ? `<span class="prep-label">지금 만들 것</span>${list.map(([n, q]) => `<span class="prep-item"><b>${q}</b> ${esc(n)}</span>`).join('')}`
+      : '';
+  }
+  // 들어온 지 몇 분 됐는지 (진행 중인 주문만)
+  function ageTag(o) {
+    if (['done', 'cancelled'].includes(o.status) || !o.createdAt) return '';
+    const min = Math.floor((Date.now() - o.createdAt) / 60000);
+    const cls = min >= 25 ? 'age late' : min >= 15 ? 'age slow' : 'age';
+    return `<span class="${cls}">${min < 1 ? '방금' : min + '분째'}</span>`;
+  }
+
   function card(o) {
     const change = o.payment === 'cash' && o.cashGiven > o.total ? o.cashGiven - o.total : 0;
     return `
     <article class="order-card admin-card st-${esc(o.status)} ${st.fresh.has(o.id) ? 'fresh' : ''}" data-id="${esc(o.id)}">
-      <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}<span class="time">${timeText(o.createdAt)}</span></header>
+      <header><span class="num big">#${esc(o.number)}</span>${badge(o.status)}${o.source === 'walkup' ? '<span class="badge badge-blue">현장</span>' : ''}${ageTag(o)}<span class="time">${timeText(o.createdAt)}</span></header>
       <div class="who"><strong>${esc(o.student)}</strong> · ${o.pickup ? '<span class="badge badge-purple">픽업</span>' : esc(o.location)}</div>
       <ul class="items">${(o.items || []).map(i => `<li><b>${esc(i.qty)}</b> ${esc(i.name)}</li>`).join('')}</ul>
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
@@ -116,6 +135,7 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     // 진행 중인 주문은 먼저 들어온 것부터
     if (['active', 'pending', 'making', 'delivering', 'ready'].includes(st.filter)) list = [...list].reverse();
     R('list').innerHTML = list.length ? list.map(card).join('') : '<p class="empty">해당하는 주문이 없어요.</p>';
+    renderPrep();
     if (onNewCount) onNewCount(st.fresh.size);
   }
 
@@ -142,7 +162,12 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
         if (btn.dataset.set === 'cancelled' && !confirm('이 주문을 취소할까요?')) return;
         btn.disabled = true;
         await store.updateOrder(id, { status: btn.dataset.set });
-        toast(`#${st.orders.find(o => o.id === id)?.number} ${STATUS[btn.dataset.set].label}`);
+        const num = st.orders.find(o => o.id === id)?.number;
+        toast(`#${num} ${STATUS[btn.dataset.set].label}`);
+        // 픽업 주문이 나오면 학생 화면 위쪽에 "방금 나온 번호"로 띄운다
+        if (btn.dataset.set === 'ready' && num) {
+          store.updateSettings({ ready: [num, ...(lastReady || []).filter(n => n !== num)].slice(0, 6), readyAt: Date.now() }).catch(() => {});
+        }
       } else if (btn.dataset.paid) {
         await store.updateOrder(id, { paid: btn.dataset.paid === '1' });
       } else if ('del' in btn.dataset) {
@@ -159,7 +184,9 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     R('open').innerHTML = `<span>${open ? '학생 주문을 받는 중이에요' : '학생 주문이 막혀 있어요'}</span>
       <button class="btn small" data-toggle-open>${open ? '주문 마감하기' : '주문 다시 받기'}</button>`;
   };
-  const unsubSettings = store.watchSettings(s => { open = (s && s.open) ?? SHOP.defaultOpen; open = open !== false; renderOpen(); });
+  let lastReady = [];
+  const unsubSettings = store.watchSettings(s => { open = (s && s.open) ?? SHOP.defaultOpen; open = open !== false; lastReady = (s && s.ready) || []; renderOpen(); });
+  const ageTimer = setInterval(() => render(), 30000); // 경과 시간 갱신
   R('open').addEventListener('click', async e => {
     if (!e.target.closest('[data-toggle-open]')) return;
     if (open && !confirm('학생 주문을 마감할까요? 현장 주문 기록은 계속 할 수 있어요.')) return;
@@ -181,7 +208,7 @@ export function mountOrders(root, { dev = false, onNewCount, onOrders } = {}) {
     if (onOrders) onOrders(list);
   }, e => toast('주문을 불러오지 못했어요: ' + errText(e), 'error'));
 
-  const unsub = () => { unsubOrders(); unsubSettings && unsubSettings(); };
+  const unsub = () => { unsubOrders(); unsubSettings && unsubSettings(); clearInterval(ageTimer); };
   return { unsub, clearFresh() { st.fresh.clear(); render(); }, get orders() { return st.orders; } };
 }
 
@@ -198,8 +225,34 @@ export function mountMenu(root) {
       <input name="imageUrl" placeholder="사진 주소 (선택)">
       <button class="btn primary" type="submit">추가</button>
     </form>
+    <details class="card bulk">
+      <summary>여러 개 한꺼번에 넣기</summary>
+      <p class="muted">한 줄에 하나씩 <b>이름, 가격, 분류</b> 순서로 적어요. 분류는 음식 또는 음료이고, 안 적으면 음식이에요.</p>
+      <textarea data-r="bulk" rows="6" placeholder="붕어빵 (팥), 1000, 음식&#10;아이스티, 1500, 음료"></textarea>
+      <button class="btn primary" data-r="bulkGo">한꺼번에 추가</button>
+    </details>
     <div data-r="list"></div>`;
   let menu = [];
+  $('[data-r=bulkGo]', root).onclick = async () => {
+    const lines = $('[data-r=bulk]', root).value.split('\n').map(l => l.trim()).filter(Boolean);
+    const items = [], bad = [];
+    lines.forEach((l, i) => {
+      // "2,000원"처럼 가격 안에 쉼표가 있어도 되게: 첫 칸은 이름, 마지막 칸이 음식/음료면 분류, 나머지는 가격
+      const parts = l.split(/[,\t]/).map(x => x.trim());
+      const name = parts.shift();
+      const cat = /^(음식|음료|food|drink)$/i.test(parts[parts.length - 1] || '') ? parts.pop() : '';
+      const n = Number(parts.join('').replace(/[^0-9]/g, ''));
+      if (!name || !n) bad.push(i + 1);
+      else items.push({ name, price: n, category: /음료|drink/i.test(cat || '') ? 'drink' : 'food', description: '', imageUrl: '' });
+    });
+    if (bad.length) return toast(`${bad.join(', ')}번째 줄을 확인해 주세요. (이름, 가격)`, 'error');
+    if (!items.length) return toast('넣을 메뉴가 없어요.', 'error');
+    try {
+      for (const it of items) await store.addMenu(it);
+      $('[data-r=bulk]', root).value = '';
+      toast(`메뉴 ${items.length}개를 추가했어요.`, 'good');
+    } catch (e) { toast(errText(e), 'error'); }
+  };
   const list = $('[data-r=list]', root);
 
   $('[data-r=add]', root).onsubmit = async ev => {

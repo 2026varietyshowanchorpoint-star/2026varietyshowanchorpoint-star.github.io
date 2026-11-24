@@ -421,3 +421,24 @@ body { word-break: keep-all; overflow-wrap: anywhere; }
 .open-bar span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor; margin-right: 8px; vertical-align: 1px; }
 .form fieldset.two { grid-template-columns: repeat(2, 1fr); }
 .order-card .bank { margin: 10px 0 0; font-size: 13px; }
+/* 지금 만들 것 */
+.prep { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.prep:empty { display: none; }
+.prep-label { font-size: 12px; font-weight: 800; color: var(--muted); margin-right: 4px; }
+.prep-item { background: #f6f4ef; border-radius: 99px; padding: 4px 11px; font-size: 14px; }
+.prep-item b { color: var(--navy); font-size: 16px; margin-right: 2px; }
+/* 경과 시간 */
+.age { font-size: 12px; font-weight: 700; color: var(--muted); background: #f1efe9; padding: 2px 8px; border-radius: 99px; }
+.age.slow { color: #9a5b00; background: var(--warn-soft); }
+.age.late { color: #fff; background: var(--bad); }
+.order-card .age + .time { margin-left: 0; }
+.order-card header .age { margin-left: auto; }
+/* 방금 나온 번호 */
+.ready-nums { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 13px; }
+.ready-nums span { opacity: .9; font-weight: 700; }
+.ready-nums b { background: #ffffffe0; color: var(--brand-dark); border-radius: 8px; padding: 2px 8px; font-size: 15px; }
+.ready-msg { margin: 10px 0 0; padding: 10px 12px; border-radius: 10px; background: var(--good-soft); color: #146c3b; font-weight: 600; }
+.row-actions { display: flex; gap: 6px; margin-top: 8px; }
+.row-actions:empty { display: none; }
+.bulk summary { cursor: pointer; font-weight: 800; }
+.bulk textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; margin: 8px 0; }

@@ -8,7 +8,7 @@
   <title>개발자</title>
   <link rel="icon" href="icons/icon-192.png">
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body class="admin dev-page">
   <header class="topbar">
@@ -97,6 +97,11 @@
           <h3>백업</h3>
           <p class="muted">사용자, 주문, 메뉴, 로그인 기록 전부를 JSON 파일로 받아요.</p>
           <button class="btn" id="backupBtn">전체 백업 받기</button>
+        </div>
+        <div class="card">
+          <h3>행사 전 정리</h3>
+          <p class="muted">테스트로 넣은 주문을 전부 지우고 주문 번호를 #1부터 다시 시작해요. 메뉴, 사용자, 로그인 기록은 그대로예요. 되돌릴 수 없으니 필요하면 먼저 백업을 받아 두세요.</p>
+          <button class="btn danger" id="resetOrdersBtn">주문 전부 지우고 번호 초기화</button>
         </div>
         <div class="card hidden" id="demoCard">
           <h3>데모 초기화</h3>

@@ -61,6 +61,11 @@ function renderBanners() {
   const pill = $('#openPill');
   pill.textContent = isOpen() ? '주문 받는 중' : '주문 마감';
   pill.className = 'pill ' + (isOpen() ? 'open' : 'closed');
+  // 방금 나온 픽업 번호 (1시간 안에 나온 것만)
+  const ready = state.settings.ready || [];
+  const fresh = ready.length && Date.now() - (state.settings.readyAt || 0) < 60 * 60 * 1000;
+  $('#readyNums').classList.toggle('hidden', !fresh);
+  if (fresh) $('#readyNums').innerHTML = `<span>방금 나온 번호</span>${ready.map(n => `<b>#${esc(n)}</b>`).join('')}`;
 }
 const isOpen = () => (state.settings.open ?? SHOP.defaultOpen) !== false;
 
@@ -195,7 +200,7 @@ function saveCart() {
 
 function renderMenu() {
   if (!state.menu.length) {
-    $('#menuList').innerHTML = '<p class="empty">아직 등록된 메뉴가 없어요.</p>';
+    $('#menuList').innerHTML = '<p class="empty">메뉴를 준비하고 있어요.<br>조금 뒤에 다시 들어와 주세요.</p>';
     return;
   }
   const groups = {};
@@ -414,12 +419,29 @@ function renderOrders() {
       ${o.note ? `<p class="note">${esc(o.note)}</p>` : ''}
       ${['transfer', 'credit'].includes(o.payment) && !o.paid && o.status !== 'cancelled' && SHOP.bankInfo
         ? `<p class="bank">보낼 계좌: <strong>${esc(SHOP.bankInfo)}</strong> · ${won(o.total)}<br>입금자명은 학년 반 이름으로 해 주세요.</p>` : ''}
-      ${o.status === 'pending' ? `<button class="btn ghost small" data-cancel="${esc(o.id)}">주문 취소</button>` : ''}
+      ${o.status === 'ready' ? `<p class="ready-msg">${o.pickup === false ? '곧 배달 가요.' : '나왔어요! 부스에 와서 <b>#' + esc(o.number) + '</b>번이라고 말해 주세요.'}</p>` : ''}
+      <div class="row-actions">
+        ${o.status === 'pending' ? `<button class="btn ghost small" data-cancel="${esc(o.id)}">주문 취소</button>` : ''}
+        ${['done', 'cancelled'].includes(o.status) ? `<button class="btn small" data-again="${esc(o.id)}">다시 주문</button>` : ''}
+      </div>
     </article>`;
   }).join('');
 }
 
 $('#orderList').addEventListener('click', async e => {
+  const again = e.target.closest('[data-again]')?.dataset.again;
+  if (again) {
+    const o = state.orders.find(x => x.id === again);
+    let added = 0, missing = 0;
+    (o?.items || []).forEach(i => {
+      const m = state.menu.find(x => x.id === i.id);
+      if (!m || m.soldOut) { missing++; return; }
+      state.cart[i.id] = Math.min((state.cart[i.id] || 0) + (Number(i.qty) || 1), 20); added++;
+    });
+    saveCart(); renderMenu(); renderCart(); showTab('menu');
+    toast(added ? `장바구니에 담았어요.${missing ? ` (${missing}개는 품절이라 뺐어요)` : ''}` : '그 메뉴는 지금 없어요.', added ? 'good' : 'error');
+    return;
+  }
   const id = e.target.closest('[data-cancel]')?.dataset.cancel;
   if (!id) return;
   if (!confirm('이 주문을 취소할까요?')) return;

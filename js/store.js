@@ -217,6 +217,8 @@ function makeDemoStore() {
       o.status = 'cancelled'; o.updatedAt = Date.now(); save();
     },
     async deleteOrder(id) { delete db.orders[id]; save(); },
+    // 행사 전 정리: 주문 전부 삭제 + 번호를 1부터 다시
+    async resetOrders() { db.orders = {}; db.counter = 0; db.settings = { ...db.settings, ready: [] }; save(); },
     async exportAll() { return JSON.parse(JSON.stringify(db)); },
     async resetDemo() { db = fresh(); save(); },
   };
@@ -412,6 +414,17 @@ async function makeFirebaseStore() {
     async updateOrder(id, patch) { await F.updateDoc(F.doc(fs, 'orders', id), { ...patch, updatedAt: F.serverTimestamp() }); },
     async cancelMyOrder(id) { await F.updateDoc(F.doc(fs, 'orders', id), { status: 'cancelled', updatedAt: F.serverTimestamp() }); },
     async deleteOrder(id) { await F.deleteDoc(F.doc(fs, 'orders', id)); },
+    async resetOrders() {
+      const s = await F.getDocs(F.collection(fs, 'orders'));
+      for (let i = 0; i < s.docs.length; i += 450) {
+        const b = F.writeBatch(fs);
+        s.docs.slice(i, i + 450).forEach(d => b.delete(d.ref));
+        await b.commit();
+      }
+      await F.setDoc(F.doc(fs, 'meta', 'counter'), { n: 0 });
+      await F.setDoc(F.doc(fs, 'meta', 'settings'), { ready: [] }, { merge: true });
+      return s.docs.length;
+    },
     async exportAll() {
       const out = {};
       for (const c of ['users', 'orders', 'menu', 'login_logs', 'meta']) {
