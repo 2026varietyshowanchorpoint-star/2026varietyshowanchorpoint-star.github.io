@@ -394,19 +394,26 @@ export function mountSettings(root) {
 // 한 줄 = 주문 하나. "기록하기"를 누르면 다 채운 줄이 온라인 주문과 같은 orders에 저장돼서
 // 주문판·회계·매출에 똑같이 들어간다. 계좌는 bankInfo가 있어도 현장에서는 늘 고를 수 있다.
 export function mountWalkup(root) {
-  const EMPTY_ROWS = 8;        // 처음에 비워 둘 줄 수
+  const EMPTY_PEOPLE = 6;      // 처음에 비워 둘 사람 수
   const payOpts = WALKUP_PAY;  // 현장은 현금·계좌·외상 셋 다
   let menu = [];
-  let rows = [];               // { id, student, item, qty, price, pay, day, saved }
-  let seq = 0;
+  // 한 줄 = 메뉴 하나. 같은 group 줄들이 한 사람(주문 하나)이다.
+  let rows = [];               // { id, group, student, item, qty, price, pay, day, saved, number }
+  let seq = 0, gseq = 0;
   const R = n => $(`[data-r=${n}]`, root);
-  const newRow = () => ({ id: 'r' + (++seq), student: '', item: '', qty: 1, price: 0, pay: 'credit', day: '', saved: false });
+  const newRow = (lead) => ({
+    id: 'r' + (++seq), group: lead ? lead.group : 'g' + (++gseq),
+    student: lead ? lead.student : '', item: '', qty: 1, price: 0,
+    pay: lead ? lead.pay : 'credit', day: lead ? lead.day : '', saved: false,
+  });
   const menuById = id => menu.find(m => m.id === id);
+  const groupRows = g => rows.filter(r => r.group === g);
+  const isLead = r => groupRows(r.group)[0] === r;
 
   root.innerHTML = `
     <div class="card sheet-card">
       <div class="sheet-head">
-        <div><h3>현장 주문 기록지</h3><p class="muted">줄마다 하나씩 적고 아래 "기록하기"를 눌러요. 기록하면 주문판·회계에 들어가요.</p></div>
+        <div><h3>현장 주문 기록지</h3><p class="muted">한 사람이 여러 개를 시키면 그 사람 줄의 "+ 메뉴"를 눌러 바로 아래에 이어 적어요. 묶인 줄은 주문 하나(번호 하나)로 기록돼요.</p></div>
         <div class="sheet-count" data-r="count"></div>
       </div>
       <div class="sheet-wrap">
@@ -420,7 +427,7 @@ export function mountWalkup(root) {
         </table>
       </div>
       <div class="sheet-actions">
-        <button class="btn" data-r="add">+ 줄 추가</button>
+        <button class="btn" data-r="add">+ 다른 사람</button>
         <div class="sheet-total">기록 대기 합계 <strong data-r="total">0원</strong></div>
         <button class="btn primary" data-r="save">기록하기</button>
       </div>
@@ -443,24 +450,36 @@ export function mountWalkup(root) {
       ${DAYS.map(d => `<option value="${d}" ${r.day === d ? 'selected' : ''}>${d}</option>`).join('')}
     </select>`;
   }
+  const pendingTotal = () => rows.filter(x => !x.saved).reduce((s, x) => s + (Number(x.price) || 0), 0);
 
   function render() {
-    R('rows').innerHTML = rows.map((r, i) => `
-      <tr data-id="${r.id}" class="${r.saved ? 'saved' : ''}">
-        <td class="c-no">${r.saved ? `#${r.number}` : i + 1}</td>
-        <td><input data-c="student" value="${esc(r.student)}" placeholder="${esc(SHOP.studentHint)}" ${r.saved ? 'disabled' : ''}></td>
+    let person = 0, lastGroup = null, odd = false;
+    R('rows').innerHTML = rows.map(r => {
+      const lead = r.group !== lastGroup;
+      if (lead) { person++; odd = !odd; lastGroup = r.group; }
+      const g = groupRows(r.group);
+      const last = g[g.length - 1] === r;
+      const cls = [r.saved ? 'saved' : '', lead ? 'lead' : 'cont', last ? 'last' : '', odd ? 'g-odd' : 'g-even'].join(' ');
+      const groupTotal = g.reduce((s, x) => s + (Number(x.price) || 0), 0);
+      return `
+      <tr data-id="${r.id}" class="${cls}">
+        <td class="c-no">${lead ? (r.saved ? `#${r.number}` : person) : ''}</td>
+        <td class="c-name">${lead
+          ? `<div class="name-cell"><input data-c="student" value="${esc(r.student)}" placeholder="${esc(SHOP.studentHint)}" ${r.saved ? 'disabled' : ''}>
+              ${r.saved ? '' : '<button class="more-btn" data-more title="이 사람 메뉴 하나 더">+ 메뉴</button>'}</div>`
+          : `<span class="same-person">〃 같은 사람</span>`}</td>
         <td>${itemCell(r)}</td>
         <td><input type="number" data-c="qty" min="1" value="${esc(r.qty)}" ${r.saved ? 'disabled' : ''}></td>
         <td><input type="number" data-c="price" min="0" step="100" value="${esc(r.price)}" ${r.saved ? 'disabled' : ''}></td>
-        <td>${payCell(r)}</td>
-        <td>${dayCell(r)}</td>
-        <td class="c-del">${r.saved ? '<span class="saved-tag">기록됨</span>' : `<button class="row-del" data-del aria-label="줄 지우기">×</button>`}</td>
-      </tr>`).join('');
-    const pending = rows.filter(r => !r.saved);
-    const total = pending.reduce((s, r) => s + (Number(r.price) || 0), 0);
-    R('total').textContent = won(total);
-    const saved = rows.filter(r => r.saved).length;
-    R('count').textContent = saved ? `기록됨 ${saved}건` : '';
+        <td>${lead ? payCell(r) : '<span class="same-person">〃</span>'}</td>
+        <td>${lead ? dayCell(r) : '<span class="same-person">〃</span>'}</td>
+        <td class="c-del">${r.saved ? (lead ? '<span class="saved-tag">기록됨</span>' : '') : `<button class="row-del" data-del aria-label="줄 지우기">×</button>`}</td>
+      </tr>
+      ${last && g.length > 1 ? `<tr class="group-sum ${odd ? 'g-odd' : 'g-even'} ${r.saved ? 'saved' : ''}"><td></td><td colspan="3" class="gs-label">${esc(g[0].student || '이 사람')} 합계 ${g.length}가지</td><td class="gs-total">${won(groupTotal)}</td><td colspan="3"></td></tr>` : ''}`;
+    }).join('');
+    R('total').textContent = won(pendingTotal());
+    const savedOrders = new Set(rows.filter(r => r.saved).map(r => r.group)).size;
+    R('count').textContent = savedOrders ? `기록됨 ${savedOrders}건` : '';
   }
 
   // 물품이나 수량이 바뀌면 가격을 자동으로 다시 계산 (직접 고친 값은 다음 변경 전까지 유지)
@@ -468,62 +487,107 @@ export function mountWalkup(root) {
     const m = menuById(r.item);
     if (m) r.price = (Number(m.price) || 0) * (Number(r.qty) || 0);
   }
+  // 이름·결제·요일은 묶음의 첫 줄 값을 같은 사람 줄에도 똑같이 넣어 둔다
+  function syncGroup(lead) {
+    groupRows(lead.group).forEach(x => { x.student = lead.student; x.pay = lead.pay; x.day = lead.day; });
+  }
 
   R('rows').addEventListener('input', e => {
     const tr = e.target.closest('tr'); if (!tr) return;
     const r = rows.find(x => x.id === tr.dataset.id); if (!r || r.saved) return;
     const c = e.target.dataset.c;
-    if (c === 'qty') { r.qty = Math.max(1, parseInt(e.target.value) || 1); recalc(r); R('total').textContent = won(rows.filter(x => !x.saved).reduce((s, x) => s + (Number(x.price) || 0), 0)); const pf = tr.querySelector('[data-c=price]'); if (pf) pf.value = r.price; }
-    else if (c === 'price') { r.price = Math.max(0, parseInt(e.target.value) || 0); R('total').textContent = won(rows.filter(x => !x.saved).reduce((s, x) => s + (Number(x.price) || 0), 0)); }
-    else if (c === 'student') r.student = e.target.value;
+    if (c === 'qty') { r.qty = Math.max(1, parseInt(e.target.value) || 1); recalc(r); const pf = tr.querySelector('[data-c=price]'); if (pf) pf.value = r.price; R('total').textContent = won(pendingTotal()); }
+    else if (c === 'price') { r.price = Math.max(0, parseInt(e.target.value) || 0); R('total').textContent = won(pendingTotal()); }
+    else if (c === 'student') { r.student = e.target.value; syncGroup(r); }
   });
   R('rows').addEventListener('change', e => {
     const tr = e.target.closest('tr'); if (!tr) return;
     const r = rows.find(x => x.id === tr.dataset.id); if (!r || r.saved) return;
     const c = e.target.dataset.c;
     if (c === 'item') { r.item = e.target.value; recalc(r); render(); }
-    else if (c === 'pay') { r.pay = e.target.value; e.target.className = 'pay-sel pay-' + r.pay; }
-    else if (c === 'day') r.day = e.target.value;
+    else if (c === 'pay') { r.pay = e.target.value; e.target.className = 'pay-sel pay-' + r.pay; syncGroup(r); }
+    else if (c === 'day') { r.day = e.target.value; syncGroup(r); }
+    else if (c === 'qty' || c === 'price') render(); // 묶음 합계 갱신
+    else if (c === 'student') render();
   });
   R('rows').addEventListener('click', e => {
-    if (!e.target.closest('[data-del]')) return;
-    const id = e.target.closest('tr').dataset.id;
-    rows = rows.filter(r => r.id !== id);
-    if (!rows.length) rows.push(newRow());
-    render();
+    const tr = e.target.closest('tr'); if (!tr || !tr.dataset.id) return;
+    const r = rows.find(x => x.id === tr.dataset.id); if (!r) return;
+    if (e.target.closest('[data-more]')) {
+      // 이 사람 묶음의 마지막 줄 바로 아래에 같은 사람 줄을 넣는다
+      const g = groupRows(r.group);
+      const at = rows.indexOf(g[g.length - 1]) + 1;
+      rows.splice(at, 0, newRow(r));
+      render();
+      const added = rows[at];
+      R('rows').querySelector(`tr[data-id="${added.id}"] [data-c=item]`)?.focus();
+      return;
+    }
+    if (e.target.closest('[data-del]')) {
+      const wasLead = isLead(r);
+      rows = rows.filter(x => x.id !== r.id);
+      // 첫 줄을 지우면 다음 줄이 그 사람의 첫 줄이 된다 (이름·결제는 이미 같은 값)
+      if (wasLead) { const next = groupRows(r.group)[0]; if (next) syncGroup(Object.assign(next, { student: r.student, pay: r.pay, day: r.day })); }
+      if (!rows.some(x => !x.saved)) rows.push(newRow());
+      render();
+    }
   });
-  R('add').onclick = () => { rows.push(newRow()); render(); };
+  R('add').onclick = () => {
+    rows.push(newRow()); render();
+    const last = rows[rows.length - 1];
+    R('rows').querySelector(`tr[data-id="${last.id}"] [data-c=student]`)?.focus();
+  };
 
   R('save').onclick = async () => {
-    const ready = rows.filter(r => !r.saved && r.student.trim() && r.item && r.qty > 0);
-    if (!ready.length) return toast('채운 줄이 없어요. 이름과 물품을 적어 주세요.', 'error');
+    // 아직 기록 안 한 묶음을 순서대로
+    const groups = [...new Set(rows.filter(r => !r.saved).map(r => r.group))];
+    const ready = [], incomplete = [];
+    groups.forEach(g => {
+      const gr = groupRows(g);
+      const filled = gr.filter(r => r.item && r.qty > 0 && menuById(r.item));
+      const lead = gr[0];
+      if (!filled.length && !lead.student.trim()) return;          // 완전히 빈 사람은 건너뛴다
+      if (!lead.student.trim() || !filled.length) { incomplete.push(lead.student.trim() || '이름 없음'); return; }
+      ready.push({ g, lead, filled });
+    });
+    if (incomplete.length) toast(`${incomplete.join(', ')}: 이름과 물품을 채워야 기록돼요.`, 'error');
+    if (!ready.length) { if (!incomplete.length) toast('채운 줄이 없어요. 이름과 물품을 적어 주세요.', 'error'); return; }
     R('save').disabled = true;
     let ok = 0;
-    for (const r of ready) {
-      const m = menuById(r.item);
-      if (!m) continue;
-      const items = [{ id: m.id, name: m.name, price: Number(m.price) || 0, qty: r.qty }];
-      const total = Number(r.price) || items[0].price * r.qty;
+    for (const { g, lead, filled } of ready) {
+      // 같은 메뉴를 두 줄에 나눠 적었으면 합친다
+      const merged = {};
+      filled.forEach(r => {
+        const m = menuById(r.item);
+        const it = (merged[m.id] ||= { id: m.id, name: m.name, price: Number(m.price) || 0, qty: 0, line: 0 });
+        it.qty += Number(r.qty) || 0;
+        it.line += Number(r.price) || (Number(m.price) || 0) * (Number(r.qty) || 0);
+      });
+      const items = Object.values(merged).map(({ line, ...it }) => it);
+      const total = Object.values(merged).reduce((s, it) => s + it.line, 0);
       try {
         const res = await store.placeOrder({
-          uid: store.user.uid, email: store.user.email || '', student: r.student.trim(),
-          location: '현장', payment: r.pay, cashGiven: 0, note: '', day: r.day || '',
+          uid: store.user.uid, email: store.user.email || '', student: lead.student.trim(),
+          location: '현장', payment: lead.pay, cashGiven: 0, note: '', day: lead.day || '',
           items, total, source: 'walkup',
         });
-        r.saved = true; r.number = res.number; ok++;
+        // 물품을 안 고른 줄은 지우고, 나머지 줄을 기록됨으로 잠근다
+        rows = rows.filter(r => r.group !== g || filled.includes(r));
+        groupRows(g).forEach(r => { r.saved = true; r.number = res.number; });
+        ok++;
       } catch (e) { toast(errText(e), 'error'); }
     }
-    // 빈 줄이 부족하면 몇 줄 더 깔아 둔다
-    const empties = rows.filter(r => !r.saved).length;
-    for (let i = empties; i < 4; i++) rows.push(newRow());
+    // 빈 사람 칸이 부족하면 몇 칸 더 깔아 둔다
+    const emptyPeople = new Set(rows.filter(r => !r.saved).map(r => r.group)).size;
+    for (let i = emptyPeople; i < 3; i++) rows.push(newRow());
     render();
     R('save').disabled = false;
-    if (ok) toast(`${ok}건 기록했어요.`, 'good');
+    if (ok) toast(`${ok}명 주문을 기록했어요.`, 'good');
   };
 
   const unsub = store.watchMenu(l => {
     menu = l;
-    if (!rows.length) rows = Array.from({ length: EMPTY_ROWS }, newRow);
+    if (!rows.length) rows = Array.from({ length: EMPTY_PEOPLE }, () => newRow());
     render();
   });
   return { unsub };

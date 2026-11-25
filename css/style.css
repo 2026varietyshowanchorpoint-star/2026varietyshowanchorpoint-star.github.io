@@ -467,7 +467,25 @@ body:not(.admin) .tab { flex: 1; }
 .sheet thead th { background: #f3bcc6; color: #3a2a2e; font-weight: 800; text-align: center; padding: 8px 6px; font-size: 12px; position: sticky; top: 0; }
 .sheet input, .sheet select { width: 100%; border: 0; background: transparent; padding: 9px 8px; font: inherit; font-size: 14px; color: var(--ink); }
 .sheet input:focus, .sheet select:focus { outline: 2px solid #4a90e2; outline-offset: -2px; background: #eef5ff; }
-.sheet tbody tr:nth-child(even) td { background: #fafbfc; }
+.sheet tbody tr.g-even td { background: #f7f8fb; }
+/* 한 사람 묶음: 이어지는 줄은 위쪽 선을 흐리게, 묶음 사이는 진하게 */
+.sheet tbody tr.lead td { border-top: 2px solid #b9bdc8; }
+.sheet tbody tr:first-child td { border-top-width: 1px; }
+.sheet tbody tr.cont td { border-top: 1px dashed #d7dae1; }
+.sheet tbody tr.cont td.c-no, .sheet tbody tr.cont td.c-name { border-top-color: transparent; }
+.name-cell { display: flex; align-items: center; }
+.name-cell input { flex: 1; min-width: 0; }
+.more-btn {
+  flex: none; margin-right: 6px; border: 1.5px solid var(--ink); background: #fff; color: var(--ink);
+  font: inherit; font-size: 12px; font-weight: 800; padding: 3px 8px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+}
+.more-btn:hover { background: var(--ink); color: #fff; }
+.same-person { display: block; padding: 9px 8px; color: var(--muted); font-size: 13px; }
+td .same-person { text-align: center; }
+td.c-name .same-person { text-align: left; padding-left: 18px; }
+.sheet tr.group-sum td { border-top: 1px dashed #d7dae1; padding: 6px 8px; font-size: 13px; }
+.sheet tr.group-sum .gs-label { color: var(--muted); text-align: right; }
+.sheet tr.group-sum .gs-total { font-weight: 800; }
 .sheet .c-no { width: 42px; text-align: center; color: var(--muted); font-size: 12px; }
 .sheet .c-qty { width: 64px; } .sheet .c-price { width: 92px; }
 .sheet .c-pay { width: 92px; } .sheet .c-day { width: 66px; } .sheet .c-del { width: 40px; text-align: center; }
