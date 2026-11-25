@@ -3,7 +3,7 @@ import { SHOP } from './config.js';
 import { store, DEMO, setPage, validEmail, inAppBrowser } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
-  openModal, closeModal, registerSW, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
+  openModal, closeModal, registerSW, forgotHelp, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
 } from './ui.js';
 
 setPage('order');
@@ -122,6 +122,7 @@ function openLogin(after) {
         <button class="btn" type="submit" data-mode="up">회원가입</button>
       </div>
     </form>
+    ${forgotHelp()}
     <p class="muted small-note">로그인하면 이메일과 접속 시간이 기록돼요.</p>
     <button class="btn ghost wide" id="closeBtn">닫기</button>`);
   const done = () => { closeModal(); toast('로그인했어요.'); if (after) after(); };

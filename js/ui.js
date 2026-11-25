@@ -1,4 +1,5 @@
 // 두 화면이 같이 쓰는 작은 도구들
+import { SHOP } from './config.js';
 
 export const STATUS = {
   pending:    { label: '접수됨',     color: 'gray' },
@@ -134,4 +135,24 @@ export function registerSW() {
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+}
+
+// 로그인 창 아래 "비밀번호를 잊었어요": 개발자에게 문의하는 방법
+export function forgotHelp() {
+  const subject = encodeURIComponent('벌티 펀드 비밀번호 문의');
+  const body = encodeURIComponent('가입한 이메일(아이디): \n이름 학년반: \n');
+  const ways = [
+    SHOP.helpEmail && `<li>메일: <a href="mailto:${esc(SHOP.helpEmail)}?subject=${subject}&body=${body}">${esc(SHOP.helpEmail)}</a></li>`,
+    SHOP.helpPhone && `<li>전화: <a href="tel:${esc(SHOP.helpPhone.replace(/[^0-9+]/g, ''))}">${esc(SHOP.helpPhone)}</a></li>`,
+    SHOP.helpVisit && `<li>${esc(SHOP.helpVisit)}</li>`,
+  ].filter(Boolean).join('');
+  return `
+    <details class="forgot">
+      <summary>비밀번호를 잊었어요</summary>
+      <div class="forgot-box">
+        <p>개발자에게 문의해 주세요. 문의할 때 <b>가입한 이메일(아이디)</b>을 꼭 같이 알려 주세요.</p>
+        <ul>${ways}</ul>
+        <p class="muted">구글 계정으로 가입했다면 비밀번호 없이 "구글 계정으로 로그인"을 누르면 돼요.</p>
+      </div>
+    </details>`;
 }

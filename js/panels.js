@@ -2,7 +2,7 @@
 // 페이지는 따로지만 기능 코드는 한 곳에서 고치도록 여기 모았다.
 import { SHOP } from './config.js';
 import { store } from './store.js';
-import { $, $$, won, esc, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, WALKUP_PAY, CATEGORY, DAYS } from './ui.js';
+import { $, $$, won, esc, forgotHelp, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, WALKUP_PAY, CATEGORY, DAYS } from './ui.js';
 
 /* ---------- 로그인 화면 (펀드/개발자 공통) ---------- */
 
@@ -18,6 +18,7 @@ export function loginGate(root, { title, demoButton }) {
         <input type="password" name="pw" placeholder="비밀번호">
         <button class="btn wide" type="submit">이메일로 로그인</button>
       </form>
+      ${forgotHelp()}
       <p class="muted small-note">로그인하면 이메일과 접속 시간이 기록돼요.</p>
     </div>`;
   if (demoButton) $('#demoBtn', root).onclick = demoButton.onClick;
