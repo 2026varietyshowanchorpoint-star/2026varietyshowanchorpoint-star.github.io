@@ -1,4 +1,4 @@
-import { SHOW, GREETING, HISTORY, TEAMS, GRADES } from './data.js';
+import { SHOW, GREETING, HISTORY, TEAMS, GRADES } from './data.js?v=3';
 
 const GRADE_LIST = [7, 8, 9, 10, 11, 12];
 const $ = s => document.querySelector(s);
@@ -15,6 +15,23 @@ function fill(text, hint, tag = 'p', cls = '') {
 function word(text, hint) {
   const t = String(text ?? '').trim();
   return t ? esc(t) : `<span class="blank-inline">${esc(hint)}</span>`;
+}
+
+function names(list) {
+  return String(list || '').split(',').map(n => n.trim()).filter(Boolean)
+    .map(n => `<span class="name">${esc(n)}</span>`).join('');
+}
+function teamPeople(t) {
+  const rows = [];
+  if (t.leaders) rows.push(`<div class="people"><b>${t.members ? '팀장' : '담당'}</b><div>${names(t.leaders)}</div></div>`);
+  if (t.members) rows.push(`<div class="people"><b>팀원</b><div>${names(t.members)}</div></div>`);
+  if (t.byGrade) for (const [g, list] of Object.entries(t.byGrade))
+    rows.push(`<div class="people"><b><a href="${g}.html">${g}학년</a></b><div>${names(list)}</div></div>`);
+  if (!rows.length) rows.push(`<p class="blank">팀원 빈칸</p>`);
+  return rows.join('');
+}
+function gradeLeaders(g) {
+  return TEAMS.map(t => t.byGrade?.[g]).filter(Boolean).join(', ');
 }
 
 function header(current) {
@@ -50,12 +67,11 @@ function renderHome() {
     </li>`).join('');
 
   const teams = TEAMS.map((t, i) => `
-    <article class="team">
+    <article class="team${t.byGrade ? ' wide' : ''}${t.wide ? ' span2' : ''}">
       <span class="team-no">${String(i + 1).padStart(2, '0')}</span>
       ${fill(t.name, '팀 이름', 'h3')}
-      ${fill(t.what, '이 팀이 하는 일')}
-      <p class="people"><b>팀장</b> ${word(t.leader, '이름')}</p>
-      <p class="people"><b>팀원</b> ${word(t.members, '이름들')}</p>
+      ${t.what ? `<p class="what">${esc(t.what)}</p>` : ''}
+      ${teamPeople(t)}
     </article>`).join('');
 
   const grades = GRADE_LIST.map(g => `
@@ -127,14 +143,19 @@ function renderGrade(g) {
         <ol class="highlights">${highlights}</ol>
       </section>
 
+      <section class="block">
+        <h2>학년 리더</h2>
+        ${gradeLeaders(g) ? `<div class="name-list">${names(gradeLeaders(g))}</div>` : '<p class="blank">학년 리더 명단 빈칸</p>'}
+      </section>
+
       <section class="block two">
         <figure class="speech">
-          <p class="who-tag">학년 리더</p>
+          <p class="who-tag">학년 리더의 말</p>
           ${fill(d.leader?.text, '학년 리더의 말이 들어갈 자리', 'blockquote')}
           <figcaption>${word(d.leader?.name, '이름')}</figcaption>
         </figure>
         <figure class="speech">
-          <p class="who-tag">대표 학생</p>
+          <p class="who-tag">대표 학생의 말</p>
           ${fill(d.student?.text, '대표 학생의 말이 들어갈 자리', 'blockquote')}
           <figcaption>${word(d.student?.name, '이름')}</figcaption>
         </figure>
