@@ -1,4 +1,4 @@
-import { SHOW, GREETING, HISTORY, TEAMS, GRADES } from './data.js?v=3';
+import { SHOW, GREETING, HISTORY, TEAMS, GRADES } from './data.js?v=5';
 
 const GRADE_LIST = [7, 8, 9, 10, 11, 12];
 const $ = s => document.querySelector(s);
@@ -34,12 +34,25 @@ function gradeLeaders(g) {
   return TEAMS.map(t => t.byGrade?.[g]).filter(Boolean).join(', ');
 }
 
+// 사진: 파일 이름이 있으면 img/파일, 없으면 점선 자리
+function pic(file, hint, cls = '') {
+  const f = String(file ?? '').trim();
+  if (!f) return `<div class="photo-slot ${cls}"><span>${esc(hint)}</span></div>`;
+  const src = /^(https?:)?\/\//.test(f) || f.includes('/') ? f : `img/${f}`;
+  return `<img class="photo ${cls}" src="${esc(src)}" alt="${esc(hint)}" loading="lazy">`;
+}
+function logo(cls) {
+  return SHOW.logo
+    ? `<img class="${cls}" src="img/${esc(SHOW.logo)}" alt="벌티 로고">`
+    : `<span class="${cls} logo-slot">로고<br>자리</span>`;
+}
+
 function header(current) {
   const links = GRADE_LIST.map(g =>
     `<a href="${g}.html"${current === g ? ' aria-current="page"' : ''}>${g}학년</a>`).join('');
   return `
     <header class="bar">
-      <a class="home" href="./"${current === 'home' ? ' aria-current="page"' : ''}>${esc(SHOW.title)}</a>
+      <a class="home" href="./"${current === 'home' ? ' aria-current="page"' : ''}>${logo('bar-logo')}<span>${esc(SHOW.title)}</span></a>
       <nav class="grade-nav" aria-label="학년">${links}</nav>
     </header>`;
 }
@@ -63,11 +76,13 @@ function renderHome() {
       <div>
         ${fill(h.title, '그해 벌티 제목', 'h3')}
         ${fill(h.text, '그해 있었던 일')}
+        ${pic(h.photo, '그해 사진 자리', 'history-photo')}
       </div>
     </li>`).join('');
 
   const teams = TEAMS.map((t, i) => `
     <article class="team${t.byGrade ? ' wide' : ''}${t.wide ? ' span2' : ''}">
+      ${pic(t.photo, '팀 사진 자리', 'team-photo')}
       <span class="team-no">${String(i + 1).padStart(2, '0')}</span>
       ${fill(t.name, '팀 이름', 'h3')}
       ${t.what ? `<p class="what">${esc(t.what)}</p>` : ''}
@@ -84,17 +99,19 @@ function renderHome() {
   document.body.innerHTML = `
     ${header('home')}
     <section class="hero">
+      ${logo('hero-logo')}
       <p class="kicker">Variety Show</p>
       <h1>${esc(SHOW.title)}</h1>
       ${fill(SHOW.subtitle, '올해 벌티 주제 빈칸', 'p', 'hero-sub')}
       ${showInfo()}
     </section>
     <main class="wrap">
+      <div class="main-photo">${pic(SHOW.photo, '첫 화면 큰 사진 자리 (포스터나 단체 사진)', 'wide-photo')}</div>
       <section class="block">
         <h2>대표 말씀</h2>
         <figure class="speech big">
           ${fill(GREETING.text, '대표 말씀이 들어갈 자리', 'blockquote')}
-          <figcaption>${word(GREETING.name, '이름')} <span>${word(GREETING.role, '직함')}</span></figcaption>
+          <figcaption>${pic(GREETING.photo, '얼굴 사진', 'face')}<span class="who">${word(GREETING.name, '이름')} <span>${word(GREETING.role, '직함')}</span></span></figcaption>
         </figure>
       </section>
 
@@ -133,6 +150,7 @@ function renderGrade(g) {
       ${fill(d.theme, '학년 주제 빈칸', 'p', 'hero-sub')}
     </section>
     <main class="wrap">
+      <div class="main-photo">${pic(d.cover, `${g}학년 대표 사진 자리`, 'wide-photo')}</div>
       <section class="block">
         <h2>무대 내용</h2>
         ${fill(d.story, '이 학년 무대가 어떤 내용인지 들어갈 자리', 'p', 'story')}
@@ -144,6 +162,11 @@ function renderGrade(g) {
       </section>
 
       <section class="block">
+        <h2>사진</h2>
+        <div class="gallery">${(d.photos?.length ? d.photos : ['']).map((p, i) => pic(p, `사진 자리 ${i + 1}`)).join('')}</div>
+      </section>
+
+      <section class="block">
         <h2>학년 리더</h2>
         ${gradeLeaders(g) ? `<div class="name-list">${names(gradeLeaders(g))}</div>` : '<p class="blank">학년 리더 명단 빈칸</p>'}
       </section>
@@ -152,12 +175,12 @@ function renderGrade(g) {
         <figure class="speech">
           <p class="who-tag">학년 리더의 말</p>
           ${fill(d.leader?.text, '학년 리더의 말이 들어갈 자리', 'blockquote')}
-          <figcaption>${word(d.leader?.name, '이름')}</figcaption>
+          <figcaption>${pic(d.leader?.photo, '얼굴', 'face')}<span class="who">${word(d.leader?.name, '이름')}</span></figcaption>
         </figure>
         <figure class="speech">
           <p class="who-tag">대표 학생의 말</p>
           ${fill(d.student?.text, '대표 학생의 말이 들어갈 자리', 'blockquote')}
-          <figcaption>${word(d.student?.name, '이름')}</figcaption>
+          <figcaption>${pic(d.student?.photo, '얼굴', 'face')}<span class="who">${word(d.student?.name, '이름')}</span></figcaption>
         </figure>
       </section>
 

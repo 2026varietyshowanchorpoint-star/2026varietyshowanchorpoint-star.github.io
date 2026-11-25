@@ -1,27 +1,34 @@
 // 벌티 소개 페이지 내용. 이 파일만 고치면 모든 페이지에 반영된다.
 // 빈칸('')으로 두면 페이지에 점선 "빈칸" 상자가 나온다. 따옴표 안에 글을 넣으면 된다.
 // 줄을 바꾸고 싶으면 글 안에 \n 을 넣는다.
+//
+// 사진과 로고: about/img 폴더에 파일을 올리고, 그 파일 이름을 적는다.
+// 예) logo: 'logo.png'  /  photo: '2025-stage.jpg'
+// 비워 두면 점선 "사진 자리" 상자가 나온다.
 
 export const SHOW = {
   title: '2026 벌티',
   subtitle: '', // 예: 올해 벌티 전체 주제
   date: '',     // 예: '2026년 12월 19일 (토) 오후 6시'
   place: '',    // 예: '학교 대강당'
+  logo: '',     // 벌티 로고 (위쪽 막대와 첫 화면에 나온다). 배경이 투명한 png가 좋다
+  photo: '',    // 첫 화면 큰 사진 (포스터나 단체 사진, 가로로 긴 사진)
 };
 
 // 맨 처음에 나오는 대표 말씀 (교장 선생님, 담당 선생님 등)
 export const GREETING = {
   name: '',  // 예: '서지훈'
   role: '',  // 예: '벌티 담당 선생님'
+  photo: '', // 얼굴 사진 (정사각형이 좋다)
   text: '',
 };
 
 // 벌티 역사. 위에서부터 오래된 순서로. 줄을 더 넣거나 빼도 된다.
 export const HISTORY = [
-  { year: '', title: '', text: '' },
-  { year: '', title: '', text: '' },
-  { year: '', title: '', text: '' },
-  { year: '2026', title: '', text: '' },
+  { year: '', title: '', text: '', photo: '' },
+  { year: '', title: '', text: '', photo: '' },
+  { year: '', title: '', text: '', photo: '' },
+  { year: '2026', title: '', text: '', photo: '' },
 ];
 
 // 팀 소개. 순서대로 나온다.
@@ -31,17 +38,20 @@ export const HISTORY = [
 export const TEAMS = [
   {
     name: '디렉터',
+    photo: '',
     what: '선생님 & 리더 소통',
     leaders: '김수훈',
   },
   {
     name: '부디렉터',
+    photo: '',
     wide: true,
     what: '스케줄 관리, 공연 세팅, 프로그램 편성, 영성 기도회, 조명, 진행, 스탭 영상, 브로셔 제작, 굿즈 제작, 장비 총괄 관리',
     members: '이해인, 이보리, 박현동, 정하은, 이해온',
   },
   {
     name: '학년 리더',
+    photo: '',
     what: '공연 아이템, 의상, 학년 소품, 대본, 학년 관리, 학년 영상 및 오디오 제작',
     byGrade: {
       7: '김수인, 구하영, 이성은, 박하준, 송연우, 전동준, 김영서',
@@ -52,18 +62,21 @@ export const TEAMS = [
   },
   {
     name: '홍보 / 촬영 영상 / 현장 데코',
+    photo: '',
     what: '홍보 영상(1~2개) 및 오프닝, 현수막, 현장 포토존, 현장 데코',
     leaders: '박지수, 장우성',
     members: '박예하, 김서희, 김수아, 김하율, 한서현, 김강현, 김주니, 이시은',
   },
   {
     name: '펀드 기획 판매',
+    photo: '',
     what: '메뉴 선정, 펀드 홍보, 판매, 배달, 수익',
     leaders: '남진후, 박이음',
     members: '임사랑, 정하연, 이재휼(Jonah Lee), 김성준, 서윤성, 천현석, 박하은',
   },
   {
     name: '기타 등등 잡일',
+    photo: '',
     what: '',
     leaders: '최하진',
   },
@@ -71,14 +84,17 @@ export const TEAMS = [
 
 // 학년별 내용. 7~12학년.
 // theme: 주제 / story: 무슨 내용인지 / highlights: 주요 볼거리 (여러 개)
-// leader: 학년 리더 / student: 대표 학생
+// leader: 학년 리더 / student: 대표 학생 (각각 얼굴 photo 넣을 수 있음)
+// cover: 학년 페이지 맨 위 큰 사진 / photos: 아래 사진 모음 (개수 자유)
 function emptyGrade() {
   return {
     theme: '',
     story: '',
+    cover: '',
     highlights: ['', '', ''],
-    leader: { name: '', text: '' },
-    student: { name: '', text: '' },
+    photos: ['', '', ''],
+    leader: { name: '', text: '', photo: '' },
+    student: { name: '', text: '', photo: '' },
   };
 }
 
