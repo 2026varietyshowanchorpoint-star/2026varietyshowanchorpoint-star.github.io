@@ -95,7 +95,7 @@ export async function askNotify() {
 export function notify(title, body) {
   try {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: 'icons/icon-192.png' });
+      new Notification(title, { body, icon: 'images/app-icons/icon-192.png' });
     }
   } catch (e) { /* 일부 모바일 브라우저는 페이지에서 직접 알림을 못 띄운다 */ }
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);

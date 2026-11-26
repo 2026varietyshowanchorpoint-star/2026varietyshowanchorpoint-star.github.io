@@ -2,7 +2,8 @@
 // 페이지는 따로지만 기능 코드는 한 곳에서 고치도록 여기 모았다.
 import { SHOP } from './config.js';
 import { store } from './store.js';
-import { $, $$, won, esc, forgotHelp, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, WALKUP_PAY, CATEGORY, DAYS } from './ui.js';
+import { MENU_IMAGES, menuImage } from './menu-images.js';
+import { $, $$, won, esc, forgotHelp, openModal, closeModal, timeText, badge, toast, errText, notify, beep, STATUS, PAYMENT, WALKUP_PAY, CATEGORY, DAYS } from './ui.js';
 
 /* ---------- 로그인 화면 (펀드/개발자 공통) ---------- */
 
@@ -229,7 +230,8 @@ export function mountMenu(root) {
       <input name="price" type="number" min="0" step="100" placeholder="가격" required>
       <select name="category"><option value="food">음식</option><option value="drink">음료</option></select>
       <input name="description" placeholder="설명 (선택)">
-      <input name="imageUrl" placeholder="사진 주소 (선택)">
+      <input name="imageUrl" type="hidden">
+      <button type="button" class="pic-pick" data-r="addPic" aria-label="사진 고르기"><img src="images/menu/food/default.svg" alt=""><span>사진 고르기</span></button>
       <button class="btn primary" type="submit">추가</button>
     </form>
     <details class="card bulk">
@@ -262,6 +264,35 @@ export function mountMenu(root) {
   };
   const list = $('[data-r=list]', root);
 
+  // 사진 고르기 창: 기본 그림 목록 + 이름으로 자동 + 직접 주소
+  function pickImage(current, onPick) {
+    const m = openModal(`
+      <h2>사진 고르기</h2>
+      <p class="muted">그림을 누르면 바로 들어가요. "자동"은 메뉴 이름에 맞는 그림을 알아서 붙여요.</p>
+      <div class="pic-grid">
+        <button class="pic-opt ${!current ? 'on' : ''}" data-pic=""><span class="pic-auto">자동</span><small>이름으로 찾기</small></button>
+        ${MENU_IMAGES.map(i => `<button class="pic-opt ${current === i.path ? 'on' : ''}" data-pic="${esc(i.path)}"><img src="${esc(i.path)}" alt=""><small>${esc(i.name)}</small></button>`).join('')}
+      </div>
+      <label class="pic-url">직접 주소 넣기 (사진 파일 주소나 images/menu/... 경로)
+        <div class="row"><input data-r="url" value="${esc(current && !MENU_IMAGES.some(i => i.path === current) ? current : '')}" placeholder="https://... 또는 images/menu/food/내사진.png"><button class="btn" data-r="useUrl">넣기</button></div>
+      </label>
+      <button class="btn ghost wide" data-r="close">닫기</button>`);
+    m.addEventListener('click', e => {
+      const opt = e.target.closest('[data-pic]');
+      if (opt) { onPick(opt.dataset.pic); closeModal(); return; }
+      if (e.target.closest('[data-r=useUrl]')) { onPick($('[data-r=url]', m).value.trim()); closeModal(); return; }
+      if (e.target.closest('[data-r=close]')) closeModal();
+    });
+  }
+  const addForm = $('[data-r=add]', root);
+  const syncAddPic = () => {
+    const f = new FormData(addForm);
+    $('[data-r=addPic] img', root).src = menuImage({ imageUrl: f.get('imageUrl'), name: f.get('name'), category: f.get('category') });
+  };
+  addForm.addEventListener('input', syncAddPic);
+  addForm.addEventListener('change', syncAddPic);
+  $('[data-r=addPic]', root).onclick = () => pickImage(addForm.imageUrl.value, v => { addForm.imageUrl.value = v; syncAddPic(); });
+
   $('[data-r=add]', root).onsubmit = async ev => {
     ev.preventDefault();
     const f = new FormData(ev.target);
@@ -270,7 +301,7 @@ export function mountMenu(root) {
         name: f.get('name').trim(), price: Number(f.get('price')) || 0, category: f.get('category'),
         description: f.get('description').trim(), imageUrl: f.get('imageUrl').trim(),
       });
-      ev.target.reset();
+      ev.target.reset(); syncAddPic();
       toast('메뉴를 추가했어요.');
     } catch (e) { toast(errText(e), 'error'); }
   };
@@ -283,13 +314,13 @@ export function mountMenu(root) {
           <button class="btn ghost small" data-move="-1" ${i === 0 ? 'disabled' : ''} aria-label="위로">▲</button>
           <button class="btn ghost small" data-move="1" ${i === menu.length - 1 ? 'disabled' : ''} aria-label="아래로">▼</button>
         </div>
+        <button type="button" class="pic-pick small" data-pic-for="${esc(m.id)}" title="사진 바꾸기"><img src="${esc(menuImage(m))}" alt="${esc(m.name)} 사진"></button>
         <input data-k="name" value="${esc(m.name)}" aria-label="이름">
         <input data-k="price" type="number" min="0" step="100" value="${esc(m.price)}" aria-label="가격">
         <select data-k="category" aria-label="분류">
           ${Object.entries(CATEGORY).map(([k, v]) => `<option value="${k}" ${m.category === k ? 'selected' : ''}>${v}</option>`).join('')}
         </select>
         <input data-k="description" value="${esc(m.description || '')}" placeholder="설명" aria-label="설명">
-        <input data-k="imageUrl" value="${esc(m.imageUrl || '')}" placeholder="사진 주소" aria-label="사진 주소">
         <button class="btn small ${m.soldOut ? 'primary' : ''}" data-sold>${m.soldOut ? '판매 재개' : '품절'}</button>
         <button class="btn ghost small danger" data-delmenu>삭제</button>
       </div>`).join('');
@@ -305,6 +336,12 @@ export function mountMenu(root) {
   list.addEventListener('click', async e => {
     const btn = e.target.closest('button');
     if (!btn) return;
+    if (btn.dataset.picFor) {
+      const item = menu.find(x => x.id === btn.dataset.picFor);
+      return pickImage(item.imageUrl || '', async v => {
+        try { await store.updateMenu(item.id, { imageUrl: v }); toast('사진을 바꿨어요.'); } catch (err) { toast(errText(err), 'error'); }
+      });
+    }
     const id = btn.closest('.menu-row').dataset.id;
     const idx = menu.findIndex(m => m.id === id);
     const m = menu[idx];

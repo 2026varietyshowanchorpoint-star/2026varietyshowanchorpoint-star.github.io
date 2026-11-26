@@ -1,9 +1,9 @@
 // 앱 껍데기만 캐시한다. 주문 데이터는 항상 Firebase에서 새로 받는다.
-const CACHE = 'fund-order-v12';
+const CACHE = 'fund-order-v13';
 const SHELL = [
   './', 'index.html', 'css/style.css', 'manifest.json',
-  'js/app.js', 'js/store.js', 'js/ui.js', 'js/config.js',
-  'icons/icon-192.png', 'icons/icon-512.png',
+  'js/app.js', 'js/menu-images.js', 'js/store.js', 'js/ui.js', 'js/config.js',
+  'images/app-icons/icon-192.png', 'images/app-icons/icon-512.png',
 ];
 
 self.addEventListener('install', e => {

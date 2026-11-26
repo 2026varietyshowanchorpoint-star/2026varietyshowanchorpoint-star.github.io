@@ -43,9 +43,13 @@ Firebase Hosting을 쓰고 싶으면 `npm i -g firebase-tools` 후 `firebase log
 
 ## 디자인
 
-공연장 매점을 생각하고 만들었다. 색은 무대 남색(#1c1640), 객석 전구 노랑(#ffd43b), 팝콘 빨강(#e5383b, 학생 화면의 주문 버튼에만), 차가운 흰 종이(#f3f2f8), 민트(#12a06d, 완료·입금 확인)를 쓴다. 글꼴은 주문 번호와 큰 제목에만 Black Han Sans, 나머지는 SUIT다.
+공연장 매점을 생각하고 만들었다. 색은 벌티 메인 컬러인 파랑이 중심이다. 무대 띠와 번호표는 짙은 파랑(#0d1f4f), 버튼과 선택 표시는 파랑(#2457f5), 객석 전구 노랑(#ffd43b)은 전구 줄, "방금 나온 번호", 번호표 숫자에만 쓴다. 바탕은 옅은 푸른 흰색(#f2f5fc), 완료·입금 확인은 민트(#12a06d), 빨강은 마감·늦은 주문·삭제 같은 경고에만 쓴다. 글꼴은 주문 번호와 큰 제목에만 Black Han Sans, 나머지는 SUIT다.
 
-주문 번호는 절취선이 있는 표 모양이다. 주문을 마치면 노란 표가 위에서 뽑혀 나오고, 내 주문과 펀드 주문판의 카드도 왼쪽 번호표와 오른쪽 내용 사이에 절취선이 있다. 메뉴는 매점 가격판처럼 한 장의 목록이다. 머리의 전구 줄과 노란 "방금 나온 번호" 띠는 학생 화면에만 있는 노란 띠와 짝을 이룬다.
+주문 번호는 절취선이 있는 표 모양이다. 주문을 마치면 노란 표가 위에서 뽑혀 나오고, 내 주문과 펀드 주문판의 카드도 왼쪽 번호표와 오른쪽 내용 사이에 절취선이 있다. 메뉴는 매점 가격판처럼 한 장의 목록이고, 메뉴마다 그림이 붙는다.
+
+## 메뉴 사진
+
+그림 파일은 `images/menu/food`, `images/menu/drink`에 있다 (자세한 건 `images/README.md`). 펀드·개발자 화면 메뉴 탭에서 메뉴 왼쪽 그림을 누르면 "사진 고르기" 창이 열리고, 그림을 고르거나 직접 사진 주소를 넣는다. 사진을 안 고르면 메뉴 이름으로 맞는 그림을 찾아 붙인다 (예: "떡볶이 컵"이면 떡볶이 그림). 맞는 게 없으면 음식·음료 기본 그림이 나온다.
 
 ## 로고 넣기
 
@@ -54,7 +58,7 @@ Firebase Hosting을 쓰고 싶으면 `npm i -g firebase-tools` 후 `firebase log
 - 세 화면(index.html, fund.html, dev.html) 맨 위 헤더 왼쪽의 `logo-slot`
 - 펀드·개발자 로그인 카드 위의 `gate-logo` (js/panels.js의 loginGate)
 
-로고 파일이 나오면 icons/logo.png로 올리고, 각 자리의 `로고<br>자리` 글자를 `<img src="icons/logo.png" alt="벌티">`로 바꾼다. 점선을 없애려면 css/style.css에서 `.logo-slot`, `.gate-logo`의 border를 지운다. 홈 화면 아이콘(icons/icon-192.png, icon-512.png)도 같은 로고로 바꾸면 된다.
+로고 파일이 나오면 images/logo/logo.png로 올리고, 각 자리의 `로고<br>자리` 글자를 `<img src="images/logo/logo.png" alt="벌티">`로 바꾼다. 점선을 없애려면 css/style.css에서 `.logo-slot`, `.gate-logo`의 border를 지운다. 홈 화면 아이콘(images/app-icons/icon-192.png, icon-512.png)도 같은 로고로 바꾸면 된다.
 
 ## 판매자(펀드 담당) 화면
 

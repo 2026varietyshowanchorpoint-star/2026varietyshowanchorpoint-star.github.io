@@ -1,5 +1,6 @@
 // 소비자용 화면
 import { SHOP } from './config.js';
+import { menuImage } from './menu-images.js';
 import { store, DEMO, setPage, validEmail, inAppBrowser } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
@@ -212,7 +213,7 @@ function renderMenu() {
         const q = state.cart[m.id] || 0;
         return `
         <li class="board-row ${m.soldOut ? 'sold' : ''} ${q ? 'in-cart' : ''}" data-id="${esc(m.id)}">
-          ${m.imageUrl ? `<img class="board-img" src="${esc(m.imageUrl)}" alt="" loading="lazy">` : ''}
+          <img class="board-img" src="${esc(menuImage(m))}" alt="" loading="lazy">
           <div class="board-main">
             <span class="board-name">${esc(m.name)}</span>
             ${m.description ? `<span class="board-desc">${esc(m.description)}</span>` : ''}

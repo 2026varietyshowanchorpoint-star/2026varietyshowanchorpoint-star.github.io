@@ -1,0 +1,136 @@
+[
+ {
+  "path": "images/menu/food/bungeoppang.svg",
+  "name": "붕어빵",
+  "category": "food",
+  "keywords": [
+   "붕어빵",
+   "붕어"
+  ]
+ },
+ {
+  "path": "images/menu/food/tteokbokki.svg",
+  "name": "떡볶이",
+  "category": "food",
+  "keywords": [
+   "떡볶이",
+   "떡볶",
+   "떡"
+  ]
+ },
+ {
+  "path": "images/menu/food/hotdog.svg",
+  "name": "핫도그",
+  "category": "food",
+  "keywords": [
+   "핫도그",
+   "핫독",
+   "콘도그",
+   "소시지"
+  ]
+ },
+ {
+  "path": "images/menu/food/eomuk.svg",
+  "name": "어묵꼬치",
+  "category": "food",
+  "keywords": [
+   "어묵",
+   "오뎅",
+   "꼬치"
+  ]
+ },
+ {
+  "path": "images/menu/food/gimbap.svg",
+  "name": "김밥",
+  "category": "food",
+  "keywords": [
+   "김밥",
+   "김"
+  ]
+ },
+ {
+  "path": "images/menu/food/popcorn.svg",
+  "name": "팝콘",
+  "category": "food",
+  "keywords": [
+   "팝콘"
+  ]
+ },
+ {
+  "path": "images/menu/food/cookie.svg",
+  "name": "쿠키",
+  "category": "food",
+  "keywords": [
+   "쿠키",
+   "과자"
+  ]
+ },
+ {
+  "path": "images/menu/food/default.svg",
+  "name": "음식 기본",
+  "category": "food",
+  "keywords": []
+ },
+ {
+  "path": "images/menu/drink/icedtea.svg",
+  "name": "아이스티",
+  "category": "drink",
+  "keywords": [
+   "아이스티",
+   "티",
+   "차",
+   "tea"
+  ]
+ },
+ {
+  "path": "images/menu/drink/lemonade.svg",
+  "name": "레몬에이드",
+  "category": "drink",
+  "keywords": [
+   "레몬",
+   "에이드",
+   "레모네이드"
+  ]
+ },
+ {
+  "path": "images/menu/drink/hotchoco.svg",
+  "name": "핫초코",
+  "category": "drink",
+  "keywords": [
+   "핫초코",
+   "초코",
+   "코코아",
+   "라떼",
+   "커피"
+  ]
+ },
+ {
+  "path": "images/menu/drink/soda.svg",
+  "name": "탄산음료",
+  "category": "drink",
+  "keywords": [
+   "콜라",
+   "사이다",
+   "탄산",
+   "환타",
+   "소다",
+   "음료수"
+  ]
+ },
+ {
+  "path": "images/menu/drink/water.svg",
+  "name": "생수",
+  "category": "drink",
+  "keywords": [
+   "물",
+   "생수",
+   "water"
+  ]
+ },
+ {
+  "path": "images/menu/drink/default.svg",
+  "name": "음료 기본",
+  "category": "drink",
+  "keywords": []
+ }
+]
