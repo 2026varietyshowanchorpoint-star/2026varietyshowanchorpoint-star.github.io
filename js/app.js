@@ -1,7 +1,7 @@
 // 소비자용 화면
 import { SHOP } from './config.js';
 import { menuImage } from './menu-images.js';
-import { store, DEMO, setPage, validEmail, inAppBrowser } from './store.js';
+import { store, DEMO, PREVIEW, setPage, validEmail, inAppBrowser } from './store.js';
 import {
   $, $$, won, esc, timeText, badge, toast, errText, askNotify, notify,
   openModal, closeModal, registerSW, forgotHelp, STATUS, STATUS_FLOW, STATUS_MESSAGE, PAYMENT, CATEGORY,
@@ -42,12 +42,13 @@ function showTab(name) {
 function renderBanners() {
   const out = [];
   const inApp = inAppBrowser();
-  if (inApp && !state.user) out.push(`<div class="banner warn">${inApp} 안에서 열었어요. 구글 로그인은 여기서 안 되니, 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 크롬이나 사파리로 열어 주세요. 이메일 로그인은 여기서도 돼요.</div>`);
-  if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. 펀드 화면(fund.html)을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
+  if (inApp && !state.user && !PREVIEW) out.push(`<div class="banner warn">${inApp} 안에서 열었어요. 구글 로그인은 여기서 안 되니, 오른쪽 위 메뉴에서 "다른 브라우저로 열기"를 눌러 크롬이나 사파리로 열어 주세요. 이메일 로그인은 여기서도 돼요.</div>`);
+  if (PREVIEW) out.push(`<div class="banner warn">미리보기 모드예요. 로그인 없이 주문해 볼 수 있고, 주문은 이 브라우저에만 저장돼요.</div>`);
+  else if (DEMO) out.push(`<div class="banner warn">데모 모드예요. 주문은 이 브라우저에만 저장돼요. 펀드 화면(fund.html)을 다른 탭에 열어 두면 주문이 바로 보여요.</div>`);
   if (!isOpen()) out.push(`<div class="banner danger">지금은 주문을 받지 않아요.</div>`);
   if (state.settings.notice) out.push(`<div class="banner">${esc(state.settings.notice)}</div>`);
   // 메일로 가입했는데 아직 인증 안 한 사람
-  if (state.user && state.user.email && state.user.emailVerified === false) {
+  if (!PREVIEW && state.user && state.user.email && state.user.emailVerified === false) {
     out.push(`<div class="banner warn verify-banner">
       메일 인증이 아직 안 됐어요. ${DEMO ? '데모라 실제 메일은 안 가요.' : `<strong>${esc(state.user.email)}</strong> 메일함에서 인증 링크를 눌러 주세요.`}
       <div class="verify-actions">
@@ -108,6 +109,7 @@ store.onAuth(async u => {
 });
 
 $('#userBtn').addEventListener('click', () => (state.user ? openProfile() : openLogin()));
+if (PREVIEW) $('#userBtn').classList.add('hidden');
 
 function openLogin(after) {
   const m = openModal(`
@@ -266,6 +268,7 @@ function renderCart() {
 
 $('#checkoutBtn').addEventListener('click', () => {
   if (!isOpen()) return toast('지금은 주문을 받지 않아요.', 'error');
+  if (!state.user && PREVIEW) return store.signInGoogle().then(() => setTimeout(openCheckout, 50));
   if (!state.user) return openLogin(openCheckout);
   openCheckout();
 });
@@ -400,8 +403,10 @@ function renderOrders() {
   c.classList.toggle('hidden', !active);
 
   if (!state.user) {
-    $('#orderList').innerHTML = `<div class="empty">로그인하면 내 주문이 보여요.<br><button class="btn primary" id="loginHere">로그인</button></div>`;
-    $('#loginHere').onclick = () => openLogin();
+    $('#orderList').innerHTML = PREVIEW
+      ? '<p class="empty">아직 주문이 없어요.<br>메뉴에서 골라 주문해 보세요.</p>'
+      : `<div class="empty">로그인하면 내 주문이 보여요.<br><button class="btn primary" id="loginHere">로그인</button></div>`;
+    if (!PREVIEW) $('#loginHere').onclick = () => openLogin();
     return;
   }
   if (!state.orders.length) {

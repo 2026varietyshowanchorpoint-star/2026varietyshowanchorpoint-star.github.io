@@ -1,8 +1,10 @@
 // 데이터 계층. Firebase 모드와 데모 모드가 같은 함수를 제공한다.
 // 화면 코드는 이 파일의 store 객체만 쓴다.
-import { firebaseConfig, DEVELOPER_EMAILS } from './config.js';
+import { firebaseConfig, DEVELOPER_EMAILS, PREVIEW } from './config.js';
 
-export const DEMO = !firebaseConfig;
+export { PREVIEW };
+// 미리보기 모드이거나 Firebase 설정이 없으면 이 브라우저 안에서만 돈다
+export const DEMO = !firebaseConfig || PREVIEW;
 const DEMO_DEV_EMAIL = 'demo.dev@example.com';
 const DEV_LIST = DEVELOPER_EMAILS.map(e => e.trim().toLowerCase()).concat(DEMO ? [DEMO_DEV_EMAIL] : []);
 

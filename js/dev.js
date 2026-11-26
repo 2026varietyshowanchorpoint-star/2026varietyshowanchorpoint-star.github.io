@@ -1,7 +1,7 @@
 // 개발자 화면: 로그인 기록, 사용자 권한, 그리고 펀드 화면의 모든 기능 + 강제 권한
 // 들어올 수 있는 사람: config.js의 DEVELOPER_EMAILS에 있는 계정만
 import { DEVELOPER_EMAILS } from './config.js';
-import { store, DEMO, setPage, isDeveloper, validEmail } from './store.js';
+import { store, DEMO, PREVIEW, setPage, isDeveloper, validEmail } from './store.js';
 import { $, esc, timeText, toast, errText } from './ui.js';
 import {
   loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, mountWalkup, renderStats, tabs, downloadCsv, download, today,
@@ -17,7 +17,7 @@ const ROLE = { '': '일반', fund: '펀드 담당' };
 const st = { logs: [], users: [], staff: [], ordersPanel: null };
 let mounted = [];
 
-if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 기록은 이 브라우저 안에만 남아요.</div>`;
+if (DEMO) $('#banners').innerHTML = `<div class="banner warn">${PREVIEW ? '미리보기 모드예요. 로그인 없이 열리고, 기록은 이 브라우저 안에만 남아요.' : '데모 모드예요. 기록은 이 브라우저 안에만 남아요.'}</div>`;
 
 tabs($('#nav'), {
   logs: $('#tab-logs'), users: $('#tab-users'), orders: $('#tab-orders'), walkup: $('#tab-walkup'), menu: $('#tab-menu'),
@@ -29,12 +29,13 @@ $('#outBtn').onclick = () => store.signOut().then(() => toast('로그아웃했�
 store.onAuth(u => {
   mounted.forEach(m => m.unsub && m.unsub());
   mounted = []; st.ordersPanel = null;
-  $('#outBtn').classList.toggle('hidden', !u);
+  $('#outBtn').classList.toggle('hidden', !u || PREVIEW);
   $('#app').classList.add('hidden');
   $('#gate').classList.remove('hidden');
   $('#who').textContent = '';
 
   const demoButton = DEMO ? { label: '데모 개발자로 들어가기', onClick: () => store.demoDevLogin() } : null;
+  if (PREVIEW && (!u || u.email !== 'demo.dev@example.com')) { $('#gate').innerHTML = ''; return store.demoDevLogin(); }
   if (!u) return loginGate($('#gate'), { title: '개발자 로그인', demoButton });
   if (!isDeveloper(u)) {
     return deniedGate($('#gate'), u, { message: '개발자 계정이 아니에요. js/config.js의 DEVELOPER_EMAILS에 등록된 계정만 들어올 수 있어요.', demoButton });

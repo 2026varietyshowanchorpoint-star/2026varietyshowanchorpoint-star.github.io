@@ -1,6 +1,6 @@
 // 펀드 담당자 화면: 주문 처리, 메뉴·품절, 매출, 운영
 // 들어올 수 있는 사람: role이 'fund'인 사용자, 개발자
-import { store, DEMO, setPage, isDeveloper } from './store.js';
+import { store, DEMO, PREVIEW, setPage, isDeveloper } from './store.js';
 import { $, esc, toast, askNotify } from './ui.js';
 import { loginGate, deniedGate, mountOrders, mountMenu, mountSettings, mountAccounting, mountWalkup, renderStats, tabs } from './panels.js';
 
@@ -8,7 +8,8 @@ setPage('fund');
 let mounted = [];
 let ordersPanel = null;
 
-if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 같은 브라우저 다른 탭에서 학생 화면(index.html)으로 주문해 보세요.</div>`;
+if (PREVIEW) $('#banners').innerHTML = `<div class="banner warn">미리보기 모드예요. 로그인 없이 열리고, 주문은 이 브라우저에만 저장돼요. 같은 브라우저 다른 탭에서 학생 화면으로 주문해 보세요.</div>`;
+else if (DEMO) $('#banners').innerHTML = `<div class="banner warn">데모 모드예요. 같은 브라우저 다른 탭에서 학생 화면(index.html)으로 주문해 보세요.</div>`;
 
 tabs($('#nav'), {
   orders: $('#tab-orders'), walkup: $('#tab-walkup'), menu: $('#tab-menu'), accounting: $('#tab-accounting'), stats: $('#tab-stats'), settings: $('#tab-settings'),
@@ -22,12 +23,14 @@ $('#outBtn').onclick = () => store.signOut().then(() => toast('로그아웃했�
 store.onAuth(async u => {
   mounted.forEach(m => m.unsub && m.unsub());
   mounted = []; ordersPanel = null;
-  $('#outBtn').classList.toggle('hidden', !u);
+  $('#outBtn').classList.toggle('hidden', !u || PREVIEW);
   $('#app').classList.add('hidden');
   $('#gate').classList.remove('hidden');
   $('#who').textContent = '';
 
   const demoButton = DEMO ? { label: '데모 펀드 담당자로 들어가기', onClick: () => store.demoFundLogin() } : null;
+  // 미리보기: 로그인 화면 없이 바로 펀드 담당자로 들어간다
+  if (PREVIEW && (!u || u.email !== 'demo.fund@example.com')) { $('#gate').innerHTML = ''; return store.demoFundLogin(); }
   if (!u) return loginGate($('#gate'), { title: '펀드 담당자 로그인', demoButton });
 
   let role = '', staff = [];

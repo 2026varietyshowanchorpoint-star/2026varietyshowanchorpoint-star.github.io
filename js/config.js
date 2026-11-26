@@ -17,6 +17,10 @@ export const SHOP = {
   helpVisit: '개발자에게 직접 찾아와서 물어봐도 돼요.',
 };
 
+// 미리보기 모드: true면 로그인 없이 세 화면이 다 열리고, 데이터는 그 브라우저에만 저장된다 (Firebase를 안 씀).
+// Firebase 프로젝트가 정지된 동안 디자인을 보려고 켜 두었다. 다시 실제로 쓸 때 false로 바꾼다.
+export const PREVIEW = true;
+
 // 개발자 이메일. 여기 적힌 구글 계정은 역할과 상관없이 모든 권한을 갖는다.
 // firestore.rules 맨 위의 developerEmails() 목록도 똑같이 맞춰야 한다.
 export const DEVELOPER_EMAILS = ['kanghyeon0229@gmail.com'];
