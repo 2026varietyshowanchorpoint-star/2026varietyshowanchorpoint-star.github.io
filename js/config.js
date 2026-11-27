@@ -19,7 +19,7 @@ export const SHOP = {
 
 // 미리보기 모드: true면 로그인 없이 세 화면이 다 열리고, 데이터는 그 브라우저에만 저장된다 (Firebase를 안 씀).
 // Firebase 프로젝트가 정지된 동안 디자인을 보려고 켜 두었다. 다시 실제로 쓸 때 false로 바꾼다.
-export const PREVIEW = true;
+export const PREVIEW = false;
 
 // 개발자 이메일. 여기 적힌 구글 계정은 역할과 상관없이 모든 권한을 갖는다.
 // firestore.rules 맨 위의 developerEmails() 목록도 똑같이 맞춰야 한다.
@@ -28,10 +28,10 @@ export const DEVELOPER_EMAILS = ['kanghyeon0229@gmail.com'];
 // Firebase 콘솔 > 프로젝트 설정 > 내 앱(웹)에서 복사한 값. 비밀값이 아니라서 공개돼도 괜찮다.
 // (막는 건 firestore.rules가 한다.) null로 바꾸면 데모 모드(이 브라우저 안에만 저장)로 돈다.
 export const firebaseConfig = {
-  apiKey: 'AIzaSyArdh2jQDWeIYQFdjyK3ZB8RKiyzN93JdM',
-  authDomain: 'variety-fund-2026.firebaseapp.com',
-  projectId: 'variety-fund-2026',
-  storageBucket: 'variety-fund-2026.firebasestorage.app',
-  messagingSenderId: '358110200216',
-  appId: '1:358110200216:web:262b87ba2647512725abed',
+  apiKey: 'AIzaSyDWFqblFD53V5_Rxv0NUqQe3_JrZsua4U8',
+  authDomain: 'bulti-fund-2026.firebaseapp.com',
+  projectId: 'bulti-fund-2026',
+  storageBucket: 'bulti-fund-2026.firebasestorage.app',
+  messagingSenderId: '993658741599',
+  appId: '1:993658741599:web:e112aa934b3e23fc9d0cea',
 };
