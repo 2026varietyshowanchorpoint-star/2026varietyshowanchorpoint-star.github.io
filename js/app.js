@@ -103,6 +103,7 @@ store.onAuth(async u => {
       }
     } catch (e) { console.error(e); }
     unwatchOrders = store.watchMyOrders(u.uid, onOrders);
+    if (!PREVIEW && state.profile && !state.profile.student) setTimeout(() => { if (state.user === u && !document.querySelector('.modal-wrap')) openProfile(true); }, 800);
   }
   renderBanners();
   renderOrders();
@@ -154,10 +155,10 @@ function openLogin(after) {
   $('#closeBtn', m).onclick = closeModal;
 }
 
-function openProfile() {
+function openProfile(first) {
   const p = state.profile || {};
   const m = openModal(`
-    <h2>내 정보</h2>
+    <h2>${first ? '처음 오셨네요' : '내 정보'}</h2>${first ? '<p>학년 반 이름과 자주 받는 위치를 적어 두면 주문할 때 자동으로 채워져요. 나중에 "내 정보"에서 언제든 바꿀 수 있어요.</p>' : '<p class="muted">여기 적은 내용은 이 계정에만 저장돼요.</p>'}
     <p class="muted">${esc(state.user.email || '')}</p>
     <form id="pf" class="form">
       <label>학년 반 이름<input name="student" value="${esc(p.student || '')}" placeholder="${esc(SHOP.studentHint)}"></label>
