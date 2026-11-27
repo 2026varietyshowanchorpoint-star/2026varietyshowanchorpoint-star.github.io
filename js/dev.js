@@ -196,6 +196,7 @@ $('#resetOrdersBtn').onclick = async () => {
   try { const n = await store.resetOrders(); toast(`주문${typeof n === 'number' ? ` ${n}건` : ''}을 지우고 번호를 초기화했어요.`, 'good'); }
   catch (e) { toast(errText(e), 'error'); }
 };
+document.getElementById('resetOrdersBtn').closest('.card').insertAdjacentHTML('afterend', '<div class="card"><h3>사용자 리셋</h3><p class="muted">개발자 계정(kanghyeon0229@gmail.com)은 고정이라 어떤 리셋에도 빠져요. 구글/이메일 로그인 계정 자체는 지워지지 않고, 다음에 로그인하면 빈 정보로 다시 생겨요. 되돌릴 수 없으니 필요하면 먼저 백업을 받아 두세요.</p><div style="display:flex;flex-wrap:wrap;gap:8px"><button class="btn danger" data-reset-users="info">사용자 정보 리셋</button><button class="btn danger" data-reset-users="roles">권한 리셋</button><button class="btn danger" data-reset-users="all">사용자 전체 리셋</button></div></div>'); const RESET_USERS = { info: ['모든 사용자의 학년 반 이름과 받는 위치를 지워요.', '정보를'], roles: ['펀드 권한과 이메일로 등록한 펀드 담당자를 전부 빼요.', '권한을'], all: ['사용자 목록을 전부 지워요. 정보와 권한도 같이 사라져요.', '사용자를'] }; document.querySelectorAll('[data-reset-users]').forEach(b => { b.onclick = async () => { const mode = b.dataset.resetUsers; const typed = prompt(RESET_USERS[mode][0] + ' 개발자 계정은 빠져요. 되돌릴 수 없어요.\n계속하려면 "정리"라고 입력하세요.'); if (typed === null) return; if (typed.trim() !== '정리') return toast('"정리"라고 입력해야 진행돼요.', 'error'); try { const n = await store.resetUsers(mode); toast(`${n}명의 ${RESET_USERS[mode][1]} 리셋했어요.`, 'good'); } catch (e) { toast(errText(e), 'error'); } }; });
 $('#resetBtn').onclick = async () => {
   if (!confirm('데모 데이터를 전부 지울까요?')) return;
   await store.resetDemo();
