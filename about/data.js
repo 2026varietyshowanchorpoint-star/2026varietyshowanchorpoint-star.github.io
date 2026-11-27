@@ -113,7 +113,8 @@ export const TEAMS = [
 // theme: 주제 / story: 무슨 내용인지 / cover: 학년 페이지 맨 위 큰 사진 (가로 사진)
 // highlights: 주요 볼거리. title(볼거리 이름)과 desc(설명). 개수 자유
 // leader: 학년 리더의 말 / student: 대표 학생의 말 (photo는 세로 프로필 사진)
-// photos: 사진 모음. photo(파일)와 caption(사진 밑 설명). 개수 자유
+// photos: 연습 사진 모음. photo(파일)와 caption(사진 밑 설명). 개수 자유
+//   학부모들이 사진마다 댓글을 달 수 있다. 사진 파일 이름을 나중에 바꾸면 그 사진의 댓글은 안 보이게 된다
 function emptyGrade() {
   return {
     theme: '',
@@ -142,6 +143,22 @@ export const GRADES = {
   11: emptyGrade(),
   12: emptyGrade(),
 };
+
+// 매일 사진 (daily.html). 벌티가 시작하면 하루에 한 덩어리씩 추가한다.
+// 새 날은 맨 위에 넣는다 (위에 있는 날이 페이지에서도 먼저 나온다).
+// 사진은 about/img/daily 폴더에 올리고 'daily/파일이름' 으로 적는다.
+// 사진을 누르면 학부모들이 댓글을 달 수 있다. 사진 파일 이름을 나중에 바꾸면 그 사진의 댓글은 안 보이게 되니 조심.
+export const DAILY = [
+  // {
+  //   date: '12월 15일 (월)',
+  //   title: '연습 1일차',
+  //   note: '',
+  //   photos: [
+  //     { photo: 'daily/1215-1.jpg', caption: '9학년 첫 리허설' },
+  //     { photo: 'daily/1215-2.jpg', caption: '' },
+  //   ],
+  // },
+];
 
 // 내용을 채울 때는 위의 emptyGrade() 대신 이렇게 직접 쓰면 된다:
 // 7: {

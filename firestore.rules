@@ -105,6 +105,22 @@ service cloud.firestore {
       allow delete: if isDev();
     }
 
+    // 소개 페이지(about/) 사진 댓글: 로그인 없이 누구나 읽고 쓴다 (학부모용).
+    // 이름은 20자, 내용은 500자까지. 이름이 빈칸이면 익명. 고치기는 아무도 못 하고, 지우기는 펀드 담당과 개발자만.
+    match /photo_comments/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['page', 'photoId', 'name', 'text', 'createdAt'])
+        && request.resource.data.keys().hasAll(['page', 'photoId', 'name', 'text', 'createdAt'])
+        && request.resource.data.page is string && request.resource.data.page.size() <= 40
+        && request.resource.data.photoId is string && request.resource.data.photoId.size() <= 200
+        && request.resource.data.name is string && request.resource.data.name.size() <= 20
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+      allow delete: if isFund();
+    }
+
     // 개발자는 위에 없는 컬렉션까지 전부 읽고 쓸 수 있다
     match /{document=**} {
       allow read, write: if isDev();

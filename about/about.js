@@ -1,4 +1,5 @@
-import { SHOW, GREETING, HISTORY_INTRO, HISTORY, TEAMS, GRADES } from './data.js?v=6';
+import { SHOW, GREETING, HISTORY_INTRO, HISTORY, TEAMS, GRADES, DAILY } from './data.js?v=7';
+import { COMMENTS_ON, watchPage, addComment } from './comments.js?v=7';
 
 const GRADE_LIST = [7, 8, 9, 10, 11, 12];
 
@@ -19,9 +20,10 @@ function inline(value, hint) {
 }
 
 // 사진: 파일 이름이 있으면 img/파일, 없으면 점선 "사진 넣을 자리"
+// 'logo.png' → img/logo.png, 'daily/1215-1.jpg' → img/daily/1215-1.jpg
 function src(file) {
   const f = String(file).trim();
-  return /^(https?:)?\/\//.test(f) || f.includes('/') ? f : `img/${f}`;
+  return /^(https?:)?\/\//.test(f) || f.startsWith('/') || f.startsWith('../') ? f : `img/${f}`;
 }
 function photo(file, hint, cls = '', zoom = true) {
   if (!has(file)) return `<div class="photo-box ${cls}"><span>${esc(hint)}</span></div>`;
@@ -46,6 +48,7 @@ function header(current) {
     ['./#history', '역사', 'history'],
     ['./#teams', '팀 소개', 'teams'],
     ...GRADE_LIST.map(g => [`${g}.html`, `${g}학년`, g]),
+    ['daily.html', '매일 사진', 'daily'],
   ].map(([href, label, key]) =>
     `<li><a href="${href}"${current === key ? ' aria-current="page"' : ''}>${label}</a></li>`).join('');
   return `
@@ -189,11 +192,8 @@ function renderGrade(g) {
       ${text(h.desc, '이 볼거리에 대한 설명', 'div', 'stage-desc')}
     </div>`).join('');
 
-  const photos = (d.photos?.length ? d.photos : [{}]).map(p => `
-    <div class="photo-scene">
-      ${photo(p.photo, '사진 넣을 자리', 'r32')}
-      ${has(p.caption) ? `<div class="photo-caption">${esc(p.caption)}</div>` : ''}
-    </div>`).join('');
+  const photos = (d.photos?.length ? d.photos : [{}])
+    .map(p => `<div class="photo-scene">${photoCard(`grade-${g}`, p)}</div>`).join('');
 
   document.body.innerHTML = `
   ${header(g)}
@@ -224,7 +224,7 @@ function renderGrade(g) {
 
   <section id="photos" class="alt">
     ${sectionTitle('사진')}
-    <p class="section-hint">사진을 누르면 크게 볼 수 있어요</p>
+    <p class="section-hint">사진을 누르면 크게 보고 댓글을 남길 수 있어요</p>
     <div class="photo-pano">
       <div class="panorama-wrap"><div class="panorama-track">${photos}</div></div>
       <button class="pano-nav prev" type="button" aria-label="이전 사진">&#8249;</button>
@@ -239,6 +239,7 @@ function renderGrade(g) {
 
   ${footer()}`;
   document.title = `${g}학년 · ${SHOW.title}`;
+  startComments(`grade-${g}`);
 
   const wrap = document.querySelector('.panorama-wrap');
   const step = () => (wrap.querySelector('.photo-scene')?.offsetWidth || 300) + 14;
@@ -246,9 +247,187 @@ function renderGrade(g) {
   document.querySelector('.pano-nav.next').addEventListener('click', () => wrap.scrollBy({ left: step(), behavior: 'smooth' }));
 }
 
+// ---------- 댓글 달 수 있는 사진 카드 ----------
+function photoCard(page, p) {
+  if (!has(p.photo)) return photo('', '사진 넣을 자리', 'r32');
+  const id = `${page}/${String(p.photo).trim()}`;
+  return `
+    <figure class="pcard" data-photo-id="${esc(id)}" data-src="${esc(src(p.photo))}" data-caption="${esc(p.caption || '')}">
+      <button class="pcard-img" type="button" aria-label="사진 크게 보고 댓글 달기">
+        <img src="${esc(src(p.photo))}" alt="${esc(p.caption || '사진')}" loading="lazy">
+      </button>
+      <figcaption>
+        <span class="pcard-cap">${esc(p.caption || '')}</span>
+        ${COMMENTS_ON ? '<button class="pcard-chip" type="button">댓글 <b>0</b></button>' : ''}
+      </figcaption>
+    </figure>`;
+}
+
+// ---------- 매일 사진 페이지 ----------
+function renderDaily() {
+  const days = (DAILY || []).filter(d => has(d.date) || (d.photos || []).some(p => has(p.photo)));
+  const body = days.length ? days.map((d, i) => `
+    <section class="${i % 2 ? '' : 'alt'} day">
+      <h3 class="section-title">${esc(d.date || '')}</h3>
+      <div class="title-underline"></div>
+      ${has(d.title) ? `<p class="day-title">${lines(d.title)}</p>` : ''}
+      ${has(d.note) ? `<p class="day-note">${lines(d.note)}</p>` : ''}
+      <div class="photo-grid">
+        ${(d.photos || []).filter(p => has(p.photo)).map(p => photoCard('daily', p)).join('') || '<p class="blank">이날 사진 빈칸</p>'}
+      </div>
+    </section>`).join('') : `
+    <section class="alt">
+      <div class="history-body"><p class="blank">벌티가 시작하면 여기에 매일 새 사진이 올라와요</p></div>
+    </section>`;
+
+  document.body.innerHTML = `
+  ${header('daily')}
+  <section id="home" class="hero grade-hero">
+    <p class="hero-kicker">${esc(SHOW.title)}</p>
+    <h1 class="grade-title">매일 사진</h1>
+    <p class="hero-when">준비하는 동안 날마다 새 사진이 올라와요. 사진을 누르면 크게 보고 댓글을 남길 수 있어요.</p>
+  </section>
+  ${body}
+  ${footer()}`;
+  document.title = `매일 사진 · ${SHOW.title}`;
+  startComments('daily');
+}
+
+// ---------- 사진 보기 + 댓글 창 ----------
+let commentsByPhoto = {};
+let viewerId = null;
+let commentsError = '';
+
+function viewerHtml() {
+  return `
+  <div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-label="사진과 댓글">
+    <div class="viewer-box">
+      <button class="viewer-close" type="button" aria-label="닫기">&times;</button>
+      <div class="viewer-photo"><img alt=""></div>
+      <div class="viewer-side">
+        <p class="viewer-caption"></p>
+        ${COMMENTS_ON ? `
+        <h4 class="viewer-head">댓글 <span class="viewer-count"></span></h4>
+        <ul class="comment-list"></ul>
+        <form class="comment-form" autocomplete="off">
+          <div class="comment-who">
+            <input name="name" maxlength="20" placeholder="이름 (예: 9학년 김OO 엄마)" aria-label="이름">
+            <label class="anon"><input type="checkbox" name="anon"> 익명</label>
+          </div>
+          <textarea name="text" maxlength="500" rows="3" placeholder="응원의 한마디를 남겨 주세요" aria-label="댓글 내용"></textarea>
+          <div class="comment-actions">
+            <span class="form-msg" role="status"></span>
+            <button type="submit">댓글 남기기</button>
+          </div>
+        </form>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function timeText(ms) {
+  if (!ms) return '방금';
+  return new Date(ms).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function renderViewerComments() {
+  const v = document.getElementById('viewer');
+  if (!v || !viewerId || !COMMENTS_ON) return;
+  const list = commentsByPhoto[viewerId] || [];
+  v.querySelector('.viewer-count').textContent = list.length ? list.length : '';
+  const ul = v.querySelector('.comment-list');
+  if (commentsError) { ul.innerHTML = `<li class="comment-empty">${esc(commentsError)}</li>`; return; }
+  ul.innerHTML = list.length ? list.map(c => `
+    <li class="comment">
+      <div class="comment-meta"><b>${has(c.name) ? esc(c.name) : '익명'}</b><span>${timeText(c.createdAt)}</span></div>
+      <p>${lines(c.text)}</p>
+    </li>`).join('') : '<li class="comment-empty">아직 댓글이 없어요. 첫 댓글을 남겨 주세요.</li>';
+  ul.scrollTop = ul.scrollHeight;
+}
+
+function openViewer(card) {
+  const v = document.getElementById('viewer');
+  viewerId = card.dataset.photoId;
+  v.querySelector('.viewer-photo img').src = card.dataset.src;
+  v.querySelector('.viewer-photo img').alt = card.dataset.caption || '사진';
+  const cap = v.querySelector('.viewer-caption');
+  cap.textContent = card.dataset.caption || '';
+  cap.hidden = !card.dataset.caption;
+  v.classList.add('open');
+  document.body.classList.add('no-scroll');
+  renderViewerComments();
+}
+function closeViewer() {
+  const v = document.getElementById('viewer');
+  if (!v) return;
+  v.classList.remove('open');
+  document.body.classList.remove('no-scroll');
+  viewerId = null;
+}
+
+function updateChips() {
+  document.querySelectorAll('.pcard').forEach(card => {
+    const b = card.querySelector('.pcard-chip b');
+    if (b) b.textContent = (commentsByPhoto[card.dataset.photoId] || []).length;
+  });
+}
+
+function startComments(page) {
+  document.body.insertAdjacentHTML('beforeend', viewerHtml());
+  const v = document.getElementById('viewer');
+
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.pcard');
+    if (card && (e.target.closest('.pcard-img') || e.target.closest('.pcard-chip'))) { openViewer(card); return; }
+    if (e.target === v || e.target.closest('.viewer-close')) closeViewer();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewer(); });
+
+  if (!COMMENTS_ON) return;
+
+  // 이름은 이 기기에 기억해 둔다
+  const form = v.querySelector('.comment-form');
+  const nameIn = form.elements.name, anonIn = form.elements.anon, textIn = form.elements.text;
+  const msg = form.querySelector('.form-msg');
+  try { nameIn.value = localStorage.getItem('bulti-comment-name') || ''; } catch (e) { /* 무시 */ }
+  anonIn.addEventListener('change', () => { nameIn.disabled = anonIn.checked; });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const text = textIn.value.trim();
+    const name = anonIn.checked ? '' : nameIn.value.trim();
+    if (!text) { msg.textContent = '댓글 내용을 적어 주세요'; textIn.focus(); return; }
+    if (!anonIn.checked && !name) { msg.textContent = '이름을 적거나 익명을 골라 주세요'; nameIn.focus(); return; }
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; msg.textContent = '올리는 중...';
+    try {
+      await addComment({ page, photoId: viewerId, name, text });
+      textIn.value = ''; msg.textContent = '댓글을 남겼어요';
+      try { if (name) localStorage.setItem('bulti-comment-name', name); } catch (e2) { /* 무시 */ }
+    } catch (err) {
+      console.error(err);
+      msg.textContent = '댓글을 올리지 못했어요. 잠시 뒤 다시 해 주세요.';
+    } finally { btn.disabled = false; }
+  });
+
+  watchPage(page, list => {
+    commentsError = '';
+    commentsByPhoto = {};
+    for (const c of list) (commentsByPhoto[c.photoId] ||= []).push(c);
+    updateChips();
+    renderViewerComments();
+  }, err => {
+    console.error(err);
+    commentsError = '댓글을 불러오지 못했어요.';
+    renderViewerComments();
+  }).catch(err => { console.error(err); commentsError = '댓글을 불러오지 못했어요.'; });
+}
+
 // ---------- 시작 ----------
 const g = Number(document.body.dataset.grade);
-if (GRADE_LIST.includes(g)) renderGrade(g); else renderHome();
+if (document.body.dataset.page === 'daily') renderDaily();
+else if (GRADE_LIST.includes(g)) renderGrade(g);
+else renderHome();
 
 // 고정된 머리 높이만큼 아래로 밀기
 const head = document.getElementById('siteHeader');

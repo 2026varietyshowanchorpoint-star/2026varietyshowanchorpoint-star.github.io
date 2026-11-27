@@ -187,3 +187,9 @@ manifest.json, sw.js     홈 화면 앱(PWA)
 
 - 주문 금액은 주문하는 쪽 화면에서 계산한다. 규칙이 금액이 메뉴 가격과 맞는지까지는 확인하지 않으니, 관리자가 주문을 받을 때 금액을 한 번 보면 된다. 확실히 막으려면 Cloud Functions로 서버에서 다시 계산해야 한다.
 - 메뉴 사진은 주소(URL)로 넣는다. 사진 업로드가 필요하면 Firebase Storage를 붙인다.
+
+## 소개 페이지 사진 댓글 (about/)
+
+`about/` 소개 페이지의 학년별 연습 사진과 매일 사진(`about/daily.html`)에는 학부모가 로그인 없이 댓글을 달 수 있다. 이름을 적거나 익명으로 남긴다. 댓글은 같은 Firebase 프로젝트의 `photo_comments` 컬렉션에 들어가고, 설정은 `js/config.js`를 그대로 쓴다.
+
+`firestore.rules`의 `photo_comments` 부분이 Firebase 콘솔 > Firestore > 규칙에 게시돼 있어야 댓글이 써진다. 이상한 댓글은 Firebase 콘솔 Firestore 데이터 탭에서 그 문서를 지우면 된다 (규칙상 펀드 담당자와 개발자만 지울 수 있다).
