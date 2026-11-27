@@ -1,4 +1,4 @@
-import { SHOW, GREETING, HISTORY_INTRO, HISTORY, TEAMS, GRADES, DAILY } from './data.js?v=7';
+import { SHOW, VERSE, GREETING, HISTORY_INTRO, HISTORY, TEAMS, GRADES, DAILY } from './data.js?v=8';
 import { COMMENTS_ON, watchPage, addComment } from './comments.js?v=7';
 
 const GRADE_LIST = [7, 8, 9, 10, 11, 12];
@@ -137,7 +137,8 @@ function renderHome() {
         : '<div class="hero-slot hero-slot--poster">포스터 넣을 자리</div>'}
     </div>
     <div class="hero-info">
-      ${text(SHOW.subtitle, '올해 벌티 주제', 'p', 'hero-sub')}
+      ${text(SHOW.subtitle, '올해 버라이어티 쇼 주제', 'p', 'hero-sub')}
+      ${has(SHOW.question) ? `<p class="hero-question">${lines(SHOW.question)}</p>` : ''}
       <p class="hero-when">${inline(SHOW.date, '날짜')} &middot; ${inline(SHOW.place, '장소')}</p>
     </div>
   </section>
@@ -145,15 +146,16 @@ function renderHome() {
   <section id="greeting" class="alt">
     ${sectionTitle('대표 말씀')}
     <div class="narrow">
-      ${speechCard({ name: GREETING.name, role: GREETING.role, photoFile: GREETING.photo, body: GREETING.text, hint: '대표 말씀이 들어갈 자리' })}
+      ${has(VERSE?.text) ? `<blockquote class="verse"><p>${lines(VERSE.text)}</p><cite>${esc(VERSE.ref || '')}</cite></blockquote>` : ''}
+      ${has(GREETING.text) || has(GREETING.name) ? speechCard({ name: GREETING.name, role: GREETING.role, photoFile: GREETING.photo, body: GREETING.text, hint: '' }) : ''}
     </div>
   </section>
 
   <section id="history">
     ${sectionTitle('역사')}
     <div class="history-body">
-      ${text(HISTORY_INTRO.intro, '역사 첫 줄 (예: 20XX년에 시작해 올해로 N번째 벌티입니다)', 'p', 'history-lead')}
-      ${text(HISTORY_INTRO.text, '벌티가 어떤 공연인지 설명')}
+      ${text(HISTORY_INTRO.intro, '역사 첫 줄 (예: 20XX년에 시작해 올해로 N번째 버라이어티 쇼입니다)', 'p', 'history-lead')}
+      ${text(HISTORY_INTRO.text, '버라이어티 쇼가 어떤 공연인지 설명')}
     </div>
     <div class="history-timeline">${timeline}</div>
     <div class="history-body">
@@ -164,7 +166,7 @@ function renderHome() {
 
   <section id="teams" class="alt">
     ${sectionTitle('팀 소개')}
-    <p class="section-hint">무대 뒤에서 벌티를 만드는 사람들</p>
+    <p class="section-hint">무대 뒤에서 버라이어티 쇼를 만드는 사람들</p>
     <div class="team-grid">${teams}</div>
   </section>
 
@@ -277,7 +279,7 @@ function renderDaily() {
       </div>
     </section>`).join('') : `
     <section class="alt">
-      <div class="history-body"><p class="blank">벌티가 시작하면 여기에 매일 새 사진이 올라와요</p></div>
+      <div class="history-body"><p class="blank">버라이어티 쇼 준비가 시작되면 여기에 매일 새 사진이 올라와요</p></div>
     </section>`;
 
   document.body.innerHTML = `

@@ -258,3 +258,9 @@ body.no-scroll { overflow: hidden; }
   .viewer-photo { max-height: 42vh; }
   .viewer-photo img { max-height: 42vh; }
 }
+
+/* 주제 아래 질문, 대표 말씀(성경 구절) */
+.hero-question { margin: .4rem 0 0; font-size: 1.05rem; line-height: 1.6; opacity: .85; }
+.verse { margin: 0 0 1.5rem; padding: 1.6rem 1.4rem; text-align: center; border-left: 0; }
+.verse p { margin: 0; font-size: clamp(1.1rem, 2.4vw, 1.4rem); line-height: 1.8; font-weight: 600; word-break: keep-all; }
+.verse cite { display: block; margin-top: .8rem; font-style: normal; font-size: .95rem; opacity: .7; }
