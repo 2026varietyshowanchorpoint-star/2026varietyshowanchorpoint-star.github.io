@@ -13,6 +13,8 @@ service cloud.firestore {
 ]; }
 
     function signedIn() { return request.auth != null; }
+    // 학교 계정(@his.sc.kr)으로 로그인했는지. 개인 메일로는 주문할 수 없다
+    function schoolUser() { return signedIn() && request.auth.token.email.lower().matches('.*@his[.]sc[.]kr$'); }
     function isDev() {
       return signedIn()
         && request.auth.token.email_verified == true
@@ -81,7 +83,7 @@ service cloud.firestore {
       allow read: if signedIn() && (resource.data.uid == request.auth.uid || isFund());
 
       // 본인 이름으로, '접수됨' 상태로만 만들 수 있다
-      allow create: if isDev() || (signedIn()
+      allow create: if isDev() || (schoolUser()
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.status == 'pending'
         && request.resource.data.paid == false
