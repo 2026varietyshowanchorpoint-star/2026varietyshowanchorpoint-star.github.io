@@ -11,6 +11,7 @@ export const SHOP = {
   // 주문을 받는 중인지. false면 소비자 화면에서 주문 버튼이 막힌다.
   // (관리자 화면의 '주문 받기' 스위치가 Firestore 값으로 이걸 덮어쓴다)
   defaultOpen: true,
+  orderSound: 'sounds/baedalyi-minjog.mp3',
   // 비밀번호를 잊었을 때 로그인 창에 나오는 문의 방법. 비워 두면 그 줄은 안 나온다.
   helpEmail: 'kanghyeon0229@gmail.com',
   helpPhone: '',           // 예: '010-0000-0000'
