@@ -8,6 +8,15 @@ export const DEMO = !firebaseConfig || PREVIEW;
 const DEMO_DEV_EMAIL = 'demo.dev@example.com';
 const DEV_LIST = DEVELOPER_EMAILS.map(e => e.trim().toLowerCase()).concat(DEMO ? [DEMO_DEV_EMAIL] : []);
 
+// 학교 계정(@his.sc.kr)만 가입·로그인할 수 있다. 개발자 계정은 예외. 미리보기(데모)에서는 검사하지 않는다.
+export const SCHOOL_DOMAIN = 'his.sc.kr';
+export const NOT_SCHOOL = `학교 계정(@${SCHOOL_DOMAIN})으로만 가입하고 로그인할 수 있어요. 개인 메일은 다른 사람 이름으로 주문하는 걸 막을 수 없어서 막아 두었어요.`;
+export function allowedEmail(e) {
+  if (DEMO) return true;
+  e = String(e || '').trim().toLowerCase();
+  return e.endsWith('@' + SCHOOL_DOMAIN) || DEV_LIST.includes(e);
+}
+
 export const isDeveloper = u => !!(u && u.email && DEV_LIST.includes(u.email.toLowerCase()));
 
 // 메일 형식 확인. 공백 없는 로컬@도메인.최상위 형태만 통과시킨다.
@@ -272,7 +281,15 @@ async function makeFirebaseStore() {
   let current = null;
   const authListeners = new Set();
   // 로그인 기록은 여기 한 곳에서만 한다 (화면이 onAuth를 여러 번 불러도 한 번만 기록)
+  let popupLogin = false;
   A.onAuthStateChanged(auth, async u => {
+    // 학교 계정이 아니면 바로 로그아웃시킨다 (팝업 로그인은 signInGoogle이 직접 알려 준다)
+    if (u && !allowedEmail(u.email)) {
+      pending = null;
+      await A.signOut(auth);
+      if (!popupLogin) alert(NOT_SCHOOL);
+      return;
+    }
     current = u;
     if (u && !wasLogged(u.uid)) {
       markLogged(u.uid);
@@ -302,7 +319,12 @@ async function makeFirebaseStore() {
       }
       const p = new A.GoogleAuthProvider();
       p.setCustomParameters({ prompt: 'select_account' });
-      try { return (await A.signInWithPopup(auth, p)).user; } catch (e) {
+      popupLogin = true;
+      try {
+        const user = (await A.signInWithPopup(auth, p)).user;
+        if (!allowedEmail(user.email)) { await A.signOut(auth); throw new Error(NOT_SCHOOL); }
+        return user;
+      } catch (e) {
         // 팝업이 막히면 페이지 전체로 구글 로그인 화면에 다녀온다
         if (e && (e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment')) {
           try { sessionStorage.setItem(REDIRECT_KEY, '1'); } catch (x) { /* 무시 */ }
@@ -310,15 +332,17 @@ async function makeFirebaseStore() {
           return null;
         }
         pending = null; throw e;
-      }
+      } finally { popupLogin = false; }
     },
     async signInEmail(email, pw) {
       if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      if (!allowedEmail(email)) throw new Error(NOT_SCHOOL);
       pending = { type: 'login', method: 'email' };
       try { return (await A.signInWithEmailAndPassword(auth, email.trim(), pw)).user; } catch (e) { pending = null; throw e; }
     },
     async signUpEmail(email, pw) {
       if (!validEmail(email)) throw new Error('이메일 형식이 맞지 않아요.');
+      if (!allowedEmail(email)) throw new Error(NOT_SCHOOL);
       pending = { type: 'signup', method: 'email' };
       try {
         const cred = await A.createUserWithEmailAndPassword(auth, email.trim(), pw);

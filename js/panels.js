@@ -15,7 +15,7 @@ export function loginGate(root, { title, demoButton }) {
       ${demoButton ? `<button class="btn primary wide" id="demoBtn">${esc(demoButton.label)}</button><div class="or">또는</div>` : ''}
       <button class="btn google wide" id="gBtn">구글 계정으로 로그인</button>
       <form id="lf" class="form">
-        <input type="email" name="email" placeholder="이메일" required>
+        <input type="email" name="email" placeholder="학교 메일 (아이디@his.sc.kr)" required>
         <input type="password" name="pw" placeholder="비밀번호">
         <button class="btn wide" type="submit">이메일로 로그인</button>
       </form>

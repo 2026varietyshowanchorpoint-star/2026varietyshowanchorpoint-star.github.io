@@ -119,7 +119,7 @@ function openLogin(after) {
     <button class="btn google wide" id="gBtn">구글 계정으로 로그인</button>
     <div class="or">또는 이메일</div>
     <form id="loginForm" class="form">
-      <input type="email" name="email" placeholder="이메일" required autocomplete="email">
+      <input type="email" name="email" placeholder="학교 메일 (아이디@his.sc.kr)" required autocomplete="email">
       <input type="password" name="pw" placeholder="비밀번호 (6자 이상)" ${DEMO ? '' : 'required minlength="6"'} autocomplete="current-password">
       <div class="row">
         <button class="btn primary" type="submit" data-mode="in">로그인</button>
