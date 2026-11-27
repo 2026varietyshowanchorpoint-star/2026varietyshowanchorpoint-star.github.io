@@ -103,18 +103,7 @@ export function notify(title, body) {
 
 // 짧은 '띵' 소리 (관리자 새 주문 알림용)
 let audioCtx;
-export function beep() {
-  try {
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.connect(g); g.connect(audioCtx.destination);
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-    o.start(); o.stop(audioCtx.currentTime + 0.5);
-  } catch (e) { /* 무시 */ }
-}
+let orderAudio; export function beep() { if (SHOP.orderSound) { try { orderAudio = orderAudio || new Audio(SHOP.orderSound); orderAudio.currentTime = 0; const p = orderAudio.play(); if (p && p.catch) p.catch(tone); return; } catch (e) { /* 소리 파일이 안 되면 기본음 */ } } tone(); } function tone() { try { audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 880; g.gain.setValueAtTime(0.2, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5); o.start(); o.stop(audioCtx.currentTime + 0.5); } catch (e) { /* 무시 */ } }
 
 export function openModal(html) {
   closeModal();
