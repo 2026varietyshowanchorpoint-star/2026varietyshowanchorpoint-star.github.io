@@ -221,6 +221,7 @@ function makeDemoStore() {
     async deleteOrder(id) { delete db.orders[id]; save(); },
     // 행사 전 정리: 주문 전부 삭제 + 번호를 1부터 다시
     async resetOrders() { db.orders = {}; db.counter = 0; db.settings = { ...db.settings, ready: [] }; save(); },
+     async resetUsers(mode) { let n = 0; for (const [id, u] of Object.entries(db.users)) { if (DEV_LIST.includes(String(u.email || '').toLowerCase())) continue; n++; if (mode === 'all') delete db.users[id]; else if (mode === 'info') { delete u.student; delete u.location; } else delete u.role; } if (mode !== 'info') db.staff = []; save(); return n; },
     async exportAll() { return JSON.parse(JSON.stringify(db)); },
     async resetDemo() { db = fresh(); save(); },
   };
@@ -427,6 +428,7 @@ async function makeFirebaseStore() {
       await F.setDoc(F.doc(fs, 'meta', 'settings'), { ready: [] }, { merge: true });
       return s.docs.length;
     },
+     async resetUsers(mode) { const s = await F.getDocs(F.collection(fs, 'users')); const docs = s.docs.filter(d => !DEV_LIST.includes(String(d.data().email || '').toLowerCase())); for (let i = 0; i < docs.length; i += 450) { const b = F.writeBatch(fs); docs.slice(i, i + 450).forEach(d => mode === 'all' ? b.delete(d.ref) : b.update(d.ref, mode === 'info' ? { student: F.deleteField(), location: F.deleteField() } : { role: F.deleteField() })); await b.commit(); } if (mode !== 'info') await F.setDoc(F.doc(fs, 'meta', 'staff'), { emails: [] }); return docs.length; },
     async exportAll() {
       const out = {};
       for (const c of ['users', 'orders', 'menu', 'login_logs', 'meta']) {
