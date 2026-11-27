@@ -7,7 +7,7 @@ export const SHOP = {
   contact: '',             // 예: '문의: fund@example.com'
   instagram: '',           // 예: 'https://www.instagram.com/...'
   studentHint: '김강현 11B',
-  locationHint: 'MH 301',
+  locationHint: 'MH 303',
   // 주문을 받는 중인지. false면 소비자 화면에서 주문 버튼이 막힌다.
   // (관리자 화면의 '주문 받기' 스위치가 Firestore 값으로 이걸 덮어쓴다)
   defaultOpen: true,
